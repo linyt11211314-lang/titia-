@@ -1,0 +1,12 @@
+{
+  "name": "aura-backend",
+  "version": "1.0.0",
+  "description": "Aura 皮肤诊断后端（规则引擎独立可部署版，与前端同源）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

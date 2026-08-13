@@ -1,0 +1,57 @@
+# Titia → GitHub Pages 自动部署
+# 纯静态前端（hash 路由），无需服务端。发布后作为稳定镜像入口，规避 CloudStudio 网关 400。
+#
+# 使用前准备：
+#  1. 在 GitHub 新建仓库（如 titia）。
+#  2. 把本仓库 push 到该仓库的 main 分支（含此 workflow 文件）。
+#  3. 仓库 Settings → Pages → Build and deployment → Source 选 "GitHub Actions"。
+#  4. 推送/手动运行此 workflow 即自动发布。
+#  5. 首次打开稳定镜像前，先在旧站（70c149）「备份/导出」，再到新站「导入」恢复 IndexedDB。
+#
+# 自定义域名：若已绑定自定义域（如 titia.example.com），把下方 env.BASE_PATH 改为 '/' 即可。
+# 项目页默认路径为 /<仓库名>/，已由 BASE_PATH 自动注入，无需手改。
+
+name: Deploy Titia to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # 项目页默认子路径：/<仓库名>/。自定义域名时改为 '/'。
+      BASE_PATH: /${{ github.event.repository.name }}/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

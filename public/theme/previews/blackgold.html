@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=280,height=180">
+<title>黑黄经典 预览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#e8e8e8; font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif; }
+  .card {
+    width:260px; height:170px; border-radius:18px; overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.18);
+    display:flex; flex-direction:column;
+    background:#373A3F;
+  }
+  .card-header {
+    padding:14px 16px 8px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .dot { width:10px; height:10px; border-radius:50%; }
+  .title { color:#f5f2e8; font-size:13px; font-weight:600; letter-spacing:.5px; }
+  .card-body {
+    flex:1; padding:0 16px 14px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .color-row { display:flex; gap:6px; align-items:center; }
+  .swatch {
+    height:32px; border-radius:8px; flex:1;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:700; color:rgba(55,58,63,.85);
+  }
+  .tag {
+    display:inline-block; padding:3px 10px; border-radius:20px;
+    font-size:10px; font-weight:600; color:#373A3F;
+  }
+  .bar { height:4px; width:100%; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <span class="dot" style="background:#F5D75F"></span>
+    <span class="title">黑黄经典 · BLACK & GOLD</span>
+  </div>
+  <div class="card-body">
+    <div class="color-row">
+      <div class="swatch" style="background:#F5D75F;flex:2;color:#373A3F">密黄 #F5D75F</div>
+      <div class="swatch" style="background:#ffe066;flex:1;color:#373A3F">#FFE066</div>
+    </div>
+    <div class="color-row">
+      <div class="swatch" style="background:#414449;color:#b8ad88">表面 #414449</div>
+      <div class="swatch" style="background:#2d3034;color:#7e795a">凹陷 #2D3034</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:2px">
+      <span class="tag" style="background:#F5D75F;color:#373A3F">深色模式</span>
+      <span style="font-size:9px;color:#b8ad88">经典黑金质感</span>
+    </div>
+    <div class="bar" style="background:linear-gradient(90deg,#F5D75F 0%,#c4aa2a 40%,#ffe066 100%)"></div>
+  </div>
+</div>
+</body>
+</html>

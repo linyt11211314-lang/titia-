@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="warm" data-mode="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- 强制禁用缓存：CloudStudio 静态响应默认无 Cache-Control 头，iOS 会启发式缓存
+         index.html → 引用旧 JS bundle → PWA 删装后仍跑旧版。no-cache 系列让每次都 revalidate。 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta id="theme-color-meta" name="theme-color" content="#faf6ef" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- iOS 状态栏统一方案：black-translucent 半透明叠加 —— 状态栏透明，App 背景色（html/body/#root 的 bg-bg）自然透出，
+         切换深浅/自定义主题即跟随变化（iOS Safari 不支持动态改 theme-color，故放弃该方案改用叠加）。
+         theme-color meta 仅对 Android/浏览器生效，保留 harmless。 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Titia" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- manifest 链接打版本戳：iOS 添加主屏时先抓此文件，若被缓存会拿到旧 start_url
+         → 启动旧 HTML → 旧 JS → 旧 TabBar。戳破后强制重新抓取新 manifest（含新 start_url）。 -->
+    <link rel="manifest" href="/manifest.webmanifest?v=20260811ae" />
+    <title>Titia 时序</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

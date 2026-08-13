@@ -1,0 +1,189 @@
+@import 'tailwindcss';
+
+/* Titia 时序 · 主题系统（语义 token 三层）
+   第一层调色板 → 第二层语义变量(--color-*) → 第三层 Tailwind 类名(bg-surface/text-ink)
+   组件只用第三层，绝不出现十六进制色值。换主题/深浅只改第二层变量。 */
+
+/* 浅色（默认） */
+:root,
+[data-theme='warm'][data-mode='light'] {
+  --color-bg: #faf6ef; /* 奶油底 */
+  --color-surface: #ffffff; /* 卡片面 */
+  --color-surface-sunken: #f3ece0; /* 内嵌区 */
+  --color-primary: #d9613c; /* 主色·陶土橙 */
+  --color-primary-soft: #fbeae3;
+  --color-accent: #1e3d34; /* 撞色·墨绿 */
+  --color-accent-soft: #e4ebe7;
+  --color-highlight: #e8a33d; /* 点缀·琥珀 */
+  --color-highlight-soft: #fbf1de;
+  --color-ink: #1a1614; /* 主文字 */
+  --color-ink-2: #6b605a; /* 次级文字 */
+  --color-ink-3: #9c9089; /* 占位文字 */
+  --color-line: #e8dfd2; /* 分隔线 */
+}
+
+/* 形状层：与颜色同理放在 :root，@theme inline 只做引用，
+   这样 applySkin 用内联样式覆盖即可换形状（角色皮肤会更圆更软）。 */
+:root {
+  --radius-card: 24px;
+  --radius-sheet: 28px;
+  --radius-btn: 16px;
+  --radius-img: 16px;
+  --radius-pill: 999px;
+
+  --shadow-soft: 0 6px 18px rgba(60, 42, 30, 0.08);
+  --shadow-card: 0 12px 32px rgba(60, 42, 30, 0.12);
+  --shadow-pill: 0 10px 30px rgba(60, 42, 30, 0.16);
+
+  /* 安全区变量：PWA/原生模式取真实 env 值；浏览器模式由各页面自行兜底 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+
+/* 深色 */
+[data-theme='warm'][data-mode='dark'] {
+  --color-bg: #14110f;
+  --color-surface: #1f1b18;
+  --color-surface-sunken: #100e0c;
+  --color-primary: #e8734e;
+  --color-primary-soft: #3a241c;
+  --color-accent: #2f5a4c;
+  --color-accent-soft: #1c2e28;
+  --color-highlight: #f0b457;
+  --color-highlight-soft: #3a2e1c;
+  --color-ink: #f5f0e8;
+  --color-ink-2: #a79c93;
+  --color-ink-3: #6f655d;
+  --color-line: #2c2621;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-sunken: var(--color-surface-sunken);
+  --color-primary: var(--color-primary);
+  --color-primary-soft: var(--color-primary-soft);
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-highlight: var(--color-highlight);
+  --color-highlight-soft: var(--color-highlight-soft);
+  --color-ink: var(--color-ink);
+  --color-ink-2: var(--color-ink-2);
+  --color-ink-3: var(--color-ink-3);
+  --color-line: var(--color-line);
+
+  --radius-card: var(--radius-card);
+  --radius-sheet: var(--radius-sheet);
+  --radius-btn: var(--radius-btn);
+  --radius-img: var(--radius-img);
+  --radius-pill: var(--radius-pill);
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-card: var(--shadow-card);
+  --shadow-pill: var(--shadow-pill);
+  --duration-press: 140ms;
+}
+
+/* 全局基线 */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  /* 全局禁止滚动回弹（iOS 橡皮筋 / Android 过度滚动）：所有滚动容器自身及链式都不回弹，
+     与 PullToRefresh 顶部手势拦截配合，彻底消除页面级下拉回弹。 */
+  overscroll-behavior-y: none;
+}
+
+html,
+body,
+#root {
+  /* 用户指定：PWA 下统一用 100vh 作最外层高度基准，让背景与布局真正铺满屏幕。
+     此前 100% 在 iOS PWA 下可能与视觉视口存在亚像素/高度计算偏差；
+     改用 100vh 后 html/body/#root/App 壳高度基准完全一致，避免嵌套 100% / 100dvh
+     导致 fixed 底导的 bottom 偏移算错（表现为底部留白/异色块）。 */
+  height: 100vh;
+  margin: 0;
+  /* 全局禁止横向与纵向滚动：所有滚动都在 App 内部容器完成，
+     避免页面内容溢出带动整个界面（含底部导航栏）一起滚动 */
+  overflow: hidden;
+  /* 禁用横向 overscroll 导航（iOS 左边缘右滑的「返回」手势），
+     与左侧抽屉的边缘右滑区分开，避免一次右滑既拉抽屉又触发系统返回 */
+  overscroll-behavior-x: none;
+  /* 兜底：任何亚像素缝隙区域都填充皮肤底色（与遮罩同色），
+     即使遮罩未完全覆盖，也不会露出系统/浏览器底色 */
+  background: var(--color-bg);
+}
+
+body {
+  font-family: -apple-system, 'SF Pro Text', 'PingFang SC', system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  /* 禁用文本选中（除输入框/详情），强化 App 感 */
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+/* 视口高度统一用 vh：与 html/body/#root 的 100vh 基准一致，避免 100dvh 与 100% 嵌套
+   造成最外层高度计算错（用户指定单一 100vh 基准）。当前未被业务组件引用，留作统一 token。 */
+.app-viewport {
+  height: 100vh;
+}
+
+/* 按压反馈：活泼的轻微回弹缩小 */
+.pressable {
+  transition: transform var(--duration-press) ease-out, box-shadow var(--duration-press) ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.pressable:active {
+  transform: scale(0.95);
+  box-shadow: var(--shadow-soft);
+}
+
+/* 表单输入：放开文本选中，避免整页不选中影响输入体验 */
+.titia-input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.titia-input::placeholder {
+  color: var(--color-ink-3);
+}
+
+/* 克制动效：淡入上浮（页面/卡片入场），对齐设计文档「淡入 / 上浮」 */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fade-up {
+  animation: fadeUp 380ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* 角色皮肤装饰：极慢的漂浮，只走 transform 以便 GPU 合成，不触发重排 */
+@keyframes motifDrift {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(8px, -16px, 0) rotate(4deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+.motif-drift {
+  animation: motifDrift var(--motif-dur, 16s) ease-in-out infinite;
+  animation-delay: var(--motif-delay, 0s);
+  will-change: transform;
+}
+
+/* 尊重系统「减少动态效果」：装饰静止但仍然显示 */
+@media (prefers-reduced-motion: reduce) {
+  .motif-drift {
+    animation: none;
+  }
+}
