@@ -1,0 +1,16 @@
+# 依赖
+node_modules/
+
+# 构建产物（由 CI / 本地构建生成）
+dist/
+
+# CloudStudio 工作区配置
+.cloudstudio/
+
+# 临时文件
+tmp/
+
+# 日志 / 系统文件
+*.log
+.DS_Store
+Thumbs.db
