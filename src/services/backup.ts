@@ -153,7 +153,14 @@ async function applyBackupData(data: { tables: Record<string, AnyRow[]> }): Prom
         }),
       )
       // media 含大体积 Blob，分批写入降低单事务压力（移动端更稳）
-      const table = (db as unknown as Record<string, { bulkPut: (r: AnyRow[]) => Promise<void> }>)[name]
+      const table = (db as unknown as Record<string, {
+        bulkPut: (r: AnyRow[]) => Promise<void>
+        clear: () => Promise<void>
+      }>)[name]
+      // 还原语义：先清空目标表再写入，确保「备份是唯一真值」。
+      // 否则新站首次打开会补 9 天基线种子（ensureCheckinMigrated），合并导入会让打卡天数
+      // 被种子污染（多算/错算）。导入前已自动生成静默备份（exportBackupSilent），可回滚。
+      await table.clear()
       if (name === 'media' && fixed.length > 5) {
         for (let i = 0; i < fixed.length; i += 5) {
           await table.bulkPut(fixed.slice(i, i + 5))
