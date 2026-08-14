@@ -127,9 +127,26 @@ export async function exportBackup(): Promise<void> {
   downloadJson(json, fileName)
 }
 
-/** 导入前的本地快照：静默下载，不打扰（不弹分享面板）。 */
+/** 是否运行在 iOS 独立 PWA（主屏图标）环境。iOS 的 PWA 与 Safari 是独立存储，
+ *  且在 PWA 内触发下载会被 iOS 弹到 Safari 预览 → 导入流程被打断。 */
+function isStandalonePwa(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches
+}
+
+/** 导入前的本地快照：静默保存，不打扰。
+ *  Safari 环境：静默下载（不弹分享面板），可回滚。
+ *  PWA 环境：iOS 下载会跳转 Safari 打断导入 → 改为写入 localStorage 尽力而为（放不下则跳过，不影响导入）。 */
 async function exportBackupSilent(): Promise<void> {
   const json = await buildBackupJson()
+  if (isStandalonePwa()) {
+    try {
+      localStorage.setItem('titia:preImportSnapshot', json)
+    } catch {
+      // localStorage 容量不足（备份含大量图片 base64 时可能超出）→ 跳过静默快照，不阻塞导入主流程
+      console.warn('[备份导入] PWA 环境静默快照存储失败（可能体积超限），已跳过')
+    }
+    return
+  }
   downloadJson(json, `titia-backup-before-import-${new Date().toISOString().slice(0, 10)}.json`)
 }
 
