@@ -37,6 +37,8 @@ const TABLE_NAMES = [
   'categories',
   'budgets',
   'customSkins',
+  'presetSkins',
+  'auraHistory',
   'checkin',
   'wujiItems',
   'sleep',
@@ -77,15 +79,22 @@ async function buildBackupJson(): Promise<string> {
     const rows = all.filter((r) => !(r as { deletedAt?: number | null }).deletedAt)
     out.tables[name] = await Promise.all(
       rows.map(async (r) => {
-        if (name === 'media' && r.blob && r.thumb) {
-          r.blob = (await blobToBase64(r.blob as Blob)) as unknown as Blob
-          r.thumb = (await blobToBase64(r.thumb as Blob)) as unknown as Blob
+        // 媒体表：blob / thumb 各自独立判断并转 base64。
+        // 旧逻辑要求「两者同时存在」才转换，任一缺失会导致 Blob 被 JSON.stringify
+        // 序列化为 {} → 图片在备份中直接丢失。改为分别处理，缺哪个转哪个。
+        if (name === 'media') {
+          const row = { ...r }
+          if (row.blob instanceof Blob) row.blob = (await blobToBase64(row.blob)) as unknown as Blob
+          if (row.thumb instanceof Blob) row.thumb = (await blobToBase64(row.thumb)) as unknown as Blob
+          return row
         }
         return r
       }),
     )
   }
-  return JSON.stringify(out)
+  // 兜底 replacer：若仍有残留 Blob（理论上 media 已预处理），丢弃该字段而非写成 {}，
+  // 避免 JSON 中出现空对象导致导入时图片字段损坏。
+  return JSON.stringify(out, (_k, v) => (v instanceof Blob ? undefined : v))
 }
 
 // 触发浏览器下载（兜底用，不弹分享面板）。
@@ -141,17 +150,30 @@ async function applyBackupData(data: { tables: Record<string, AnyRow[]> }): Prom
     try {
       const fixed = await Promise.all(
         rows.map(async (r) => {
-          if (name === 'media' && r.blob && r.thumb) {
+          // 媒体表：blob / thumb 各自独立按「字符串才还原」处理。
+          // 旧逻辑要求两者都是字符串才还原，任一缺失则不处理 → 该图片字段残留 base64 字符串而非 Blob → 显示空白。
+          if (name === 'media') {
+            const row = { ...r }
             try {
-              r.blob = base64ToBlob(r.blob as unknown as string, (r.mime as string) || 'image/jpeg')
-              r.thumb = base64ToBlob(r.thumb as unknown as string, (r.mime as string) || 'image/jpeg')
+              if (typeof row.blob === 'string') row.blob = base64ToBlob(row.blob, (row.mime as string) || 'image/jpeg')
+              if (typeof row.thumb === 'string') row.thumb = base64ToBlob(row.thumb, (row.mime as string) || 'image/jpeg')
             } catch {
-              // 单条媒体损坏则跳过，不阻断整表写入
+              // 单条媒体损坏则保留原值，不阻断整表写入
             }
+            return row
           }
           return r
         }),
       )
+      // 按主键去重：防止备份文件内出现重复行（id 或 checkin/sleep 的 date 主键）导致写入异常。
+      const seen = new Set<string>()
+      const deduped = fixed.filter((row) => {
+        const key = (row.id as string) ?? (row.date as string)
+        if (key == null) return true
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
       // media 含大体积 Blob，分批写入降低单事务压力（移动端更稳）
       const table = (db as unknown as Record<string, {
         bulkPut: (r: AnyRow[]) => Promise<void>
@@ -161,12 +183,12 @@ async function applyBackupData(data: { tables: Record<string, AnyRow[]> }): Prom
       // 否则新站首次打开会补 9 天基线种子（ensureCheckinMigrated），合并导入会让打卡天数
       // 被种子污染（多算/错算）。导入前已自动生成静默备份（exportBackupSilent），可回滚。
       await table.clear()
-      if (name === 'media' && fixed.length > 5) {
-        for (let i = 0; i < fixed.length; i += 5) {
-          await table.bulkPut(fixed.slice(i, i + 5))
+      if (name === 'media' && deduped.length > 5) {
+        for (let i = 0; i < deduped.length; i += 5) {
+          await table.bulkPut(deduped.slice(i, i + 5))
         }
-      } else if (fixed.length) {
-        await table.bulkPut(fixed)
+      } else if (deduped.length) {
+        await table.bulkPut(deduped)
       }
     } catch (e) {
       console.error('[备份导入] 表写入失败:', name, e)

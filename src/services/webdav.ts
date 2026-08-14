@@ -56,6 +56,7 @@ const TABLE_NAMES = [
   'settings', 'shopping', 'financeItems', 'cycles', 'vaultMeta', 'vaultItems',
   'countdownEvents',
   'transactions', 'rules', 'accounts', 'categories', 'budgets',
+  'customSkins', 'presetSkins', 'auraHistory', 'checkin', 'wujiItems', 'sleep',
 ] as const
 
 function blobToBase64(b: Blob): Promise<string> {
@@ -89,8 +90,11 @@ async function dumpLocal(): Promise<BackupPayload> {
     const rows = await table.toArray()
     out.tables[name] = await Promise.all(
       rows.map(async (r) => {
-        if (name === 'media' && r.blob instanceof Blob && r.thumb instanceof Blob) {
-          r = { ...r, blob: await blobToBase64(r.blob as Blob), thumb: await blobToBase64(r.thumb as Blob) }
+        if (name === 'media') {
+          const row = { ...r }
+          if (row.blob instanceof Blob) row.blob = await blobToBase64(row.blob as Blob)
+          if (row.thumb instanceof Blob) row.thumb = await blobToBase64(row.thumb as Blob)
+          r = row
         } else {
           r = cleanRow(r)
         }
@@ -106,8 +110,11 @@ async function applyPayload(data: BackupPayload): Promise<number> {
   for (const name of TABLE_NAMES) {
     const rows = data.tables?.[name] || []
     const fixed = rows.map((r) => { r = cleanRow(r);
-      if (name === 'media' && typeof r.blob === 'string' && typeof r.thumb === 'string') {
-        return { ...r, blob: base64ToBlob(r.blob, (r.mime as string) || 'image/jpeg'), thumb: base64ToBlob(r.thumb, (r.mime as string) || 'image/jpeg') }
+      if (name === 'media') {
+        const row = { ...r }
+        if (typeof row.blob === 'string') row.blob = base64ToBlob(row.blob, (row.mime as string) || 'image/jpeg')
+        if (typeof row.thumb === 'string') row.thumb = base64ToBlob(row.thumb, (row.mime as string) || 'image/jpeg')
+        r = row
       }
       return r
     })
