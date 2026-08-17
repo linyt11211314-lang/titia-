@@ -28,6 +28,7 @@ export function WujiForm({ initial, onSubmit, submitLabel = '保存' }: WujiForm
   const [sellDate, setSellDate] = useState(initial?.sellDate ?? todayStr())
 
   const fileRef = useRef<HTMLInputElement>(null)
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null)
 
   const toNum = (s: string) => {
     const n = parseFloat(s)
@@ -109,7 +110,14 @@ export function WujiForm({ initial, onSubmit, submitLabel = '保存' }: WujiForm
               key={i}
               className="relative h-20 w-20 overflow-hidden rounded-btn bg-surface-sunken"
             >
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setPreviewIdx(i)}
+                className="block h-full w-full p-0"
+                aria-label="预览照片"
+              >
+                <img src={src} alt="" className="h-full w-full object-cover" />
+              </button>
               <button
                 type="button"
                 onClick={() => setPhotos((p) => p.filter((_, idx) => idx !== i))}
@@ -157,6 +165,33 @@ export function WujiForm({ initial, onSubmit, submitLabel = '保存' }: WujiForm
       >
         {submitLabel}
       </button>
+      {/* 照片全屏预览（photos 为 base64 dataURL，直接用 src 预览） */}
+      {previewIdx !== null && photos[previewIdx] != null && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/95"
+          onClick={() => setPreviewIdx(null)}
+          role="dialog"
+          aria-label="照片预览"
+        >
+          <img
+            src={photos[previewIdx]}
+            alt=""
+            className="max-h-full w-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setPreviewIdx(null)
+            }}
+            aria-label="关闭预览"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white ring-1 ring-white/30"
+            style={{ paddingTop: 'var(--safe-top)' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   )
 }

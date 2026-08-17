@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { PageHost } from '../../components/nav/PageHost'
 import { EmptyState } from '../../components/base/EmptyState'
 import { MediaImage } from '../../components/base/MediaImage'
+import { MediaPreview } from '../../components/base/MediaPreview'
 import { SwipeRow } from '../../components/base/SwipeRow'
 import { confirmSheet } from '../../components/base/Confirm'
 import { useRecordStore } from '../../stores/useRecordStore'
@@ -38,6 +39,7 @@ function estimateHeight(r: RecordEntity): number {
 
 function RecordCard({ r }: { r: RecordEntity }) {
   const meta = TYPE_META[r.type] ?? { icon: '📝', label: '记录', color: 'var(--color-ink-2)' }
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null)
   return (
     <div className="rounded-card bg-surface shadow-card p-4">
       <div className="mb-1.5 flex items-center gap-2">
@@ -51,11 +53,25 @@ function RecordCard({ r }: { r: RecordEntity }) {
       {r.content && <p className="mt-1 text-sm text-ink-2">{r.content}</p>}
       {r.mediaIds?.length ? (
         <div className="mt-2 flex gap-2 overflow-x-auto touch-manipulation">
-          {r.mediaIds.map((id) => (
-            <MediaImage key={id} id={id} className="h-20 w-20 flex-shrink-0 rounded-img object-cover" />
+          {r.mediaIds.map((id, i) => (
+            <button
+              key={id}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPreviewIdx(i)
+              }}
+              aria-label="查看图片"
+              className="flex-shrink-0 p-0"
+            >
+              <MediaImage id={id} className="h-20 w-20 flex-shrink-0 rounded-img object-cover" />
+            </button>
           ))}
         </div>
       ) : null}
+      {previewIdx !== null && (
+        <MediaPreview ids={r.mediaIds!} initial={previewIdx} onClose={() => setPreviewIdx(null)} />
+      )}
     </div>
   )
 }

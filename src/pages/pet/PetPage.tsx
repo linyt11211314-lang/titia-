@@ -507,7 +507,17 @@ export function PetPage({ embedded = false }: { embedded?: boolean }) {
           <div className="p-5">
             <div className="flex items-center gap-4">
               {pet.avatarMediaId ? (
-                <MediaImage id={pet.avatarMediaId} className="h-16 w-16 flex-shrink-0 rounded-[20px] object-cover" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPreview({ ids: [pet.avatarMediaId], initial: 0 })
+                  }}
+                  className="block h-16 w-16 flex-shrink-0 rounded-[20px] p-0"
+                  aria-label="预览头像"
+                >
+                  <MediaImage id={pet.avatarMediaId} className="h-16 w-16 flex-shrink-0 rounded-[20px] object-cover" />
+                </button>
               ) : (
                 <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[20px] bg-highlight-soft text-3xl">🐱</div>
               )}
@@ -600,7 +610,14 @@ export function PetPage({ embedded = false }: { embedded?: boolean }) {
               </div>
             </div>
             {coverMediaId ? (
-              <MediaImage id={coverMediaId} className="h-56 w-full rounded-btn object-cover" />
+              <button
+                type="button"
+                onClick={() => setPreview({ ids: [coverMediaId], initial: 0 })}
+                className="block h-56 w-full rounded-btn p-0"
+                aria-label="预览封面"
+              >
+                <MediaImage id={coverMediaId} className="h-56 w-full rounded-btn object-cover" />
+              </button>
             ) : (
               <button
                 type="button"

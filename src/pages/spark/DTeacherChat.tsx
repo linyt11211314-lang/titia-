@@ -14,6 +14,7 @@ export function DTeacherChat({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<DTeacherMsg[]>([])
   const [input, setInput] = useState('')
   const [image, setImage] = useState<{ dataUrl: string } | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfig, setShowConfig] = useState(false)
@@ -93,6 +94,32 @@ export function DTeacherChat({ onClose }: { onClose: () => void }) {
       onTouchStart={showConfig ? undefined : onTouchStart}
       onTouchEnd={showConfig ? undefined : onTouchEnd}
     >
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/95"
+          onClick={() => setPreviewImage(null)}
+          role="dialog"
+          aria-label="图片预览"
+        >
+          <img
+            src={previewImage}
+            alt=""
+            className="max-h-full w-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setPreviewImage(null)
+            }}
+            aria-label="关闭预览"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white ring-1 ring-white/30"
+            style={{ paddingTop: 'var(--safe-top)' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {showConfig ? (
         <ConfigView onBack={() => setShowConfig(false)} />
       ) : (
@@ -171,7 +198,14 @@ export function DTeacherChat({ onClose }: { onClose: () => void }) {
           >
             {image && (
               <div className="mb-2 flex items-center gap-2">
-                <img src={image.dataUrl} alt="" className="h-14 w-14 rounded-img object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(image.dataUrl)}
+                  className="block p-0"
+                  aria-label="预览图片"
+                >
+                  <img src={image.dataUrl} alt="" className="h-14 w-14 rounded-img object-cover" />
+                </button>
                 <button onClick={() => setImage(null)} className="text-xs text-ink-3">
                   移除
                 </button>

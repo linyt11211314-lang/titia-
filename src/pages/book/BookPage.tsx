@@ -12,6 +12,7 @@ import { Field, TextInput, TextArea, ChipSelect } from '../../components/base/fi
 import { confirmSheet } from '../../components/base/Confirm'
 import { navigate } from '../../app/useHashRoute'
 import { MediaImage } from '../../components/base/MediaImage'
+import { MediaPreview } from '../../components/base/MediaPreview'
 import { compressImage } from '../../services/media'
 import { mediaRepo } from '../../db/repos'
 import { useOverlayStore } from '../../stores/useOverlayStore'
@@ -210,6 +211,7 @@ export function BookForm({
   const [autoSource, setAutoSource] = useState<'rule' | 'ai' | undefined>(initial?.autoSource)
   // 图片附件：media 表 id 列表（支付截图，不进备注文字）
   const [mediaIds, setMediaIds] = useState<string[]>(initial?.mediaIds ?? [])
+  const [mediaPreviewIdx, setMediaPreviewIdx] = useState<number | null>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
   const pickMedia = async (file: File) => {
     try {
@@ -470,9 +472,16 @@ export function BookForm({
       {/* 图片附件（支付截图等）：不进备注文字；支持查看/删除/替换 */}
       <Field label="图片附件（支付截图）">
         <div className="flex flex-wrap items-center gap-2">
-          {mediaIds.map((id) => (
+          {mediaIds.map((id, idx) => (
             <div key={id} className="relative">
-              <MediaImage id={id} className="h-16 w-16 rounded-img object-cover" />
+              <button
+                type="button"
+                onClick={() => setMediaPreviewIdx(idx)}
+                className="block p-0"
+                aria-label="预览附件"
+              >
+                <MediaImage id={id} className="h-16 w-16 rounded-img object-cover" />
+              </button>
               <button
                 type="button"
                 onClick={() => removeMedia(id)}
@@ -492,6 +501,9 @@ export function BookForm({
             <span className="text-[10px]">{mediaIds.length ? '替换' : '添加截图'}</span>
           </button>
         </div>
+        {mediaPreviewIdx !== null && (
+          <MediaPreview ids={mediaIds} initial={mediaPreviewIdx} onClose={() => setMediaPreviewIdx(null)} />
+        )}
         <input
           ref={mediaInputRef}
           type="file"

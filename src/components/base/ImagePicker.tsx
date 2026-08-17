@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { compressImage } from '../../services/media'
 import { mediaRepo } from '../../db/repos'
 import { MediaImage } from './MediaImage'
+import { MediaPreview } from './MediaPreview'
 import { useAppStore } from '../../stores/useAppStore'
 
 // Titia 时序 · ImagePicker
@@ -17,6 +18,7 @@ export function ImagePicker({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const showToast = useAppStore((s) => s.showToast)
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null)
 
   const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -42,9 +44,16 @@ export function ImagePicker({
   return (
     <div>
       <div className="flex flex-wrap gap-2">
-        {mediaIds.map((id) => (
+        {mediaIds.map((id, i) => (
           <div key={id} className="relative">
-            <MediaImage id={id} className="h-20 w-20 rounded-img object-cover" />
+            <button
+              type="button"
+              onClick={() => setPreviewIdx(i)}
+              className="block p-0"
+              aria-label="预览图片"
+            >
+              <MediaImage id={id} className="h-20 w-20 rounded-img object-cover" />
+            </button>
             <button
               onClick={() => onChange(mediaIds.filter((x) => x !== id))}
               className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-pill bg-ink text-xs text-bg"
@@ -62,6 +71,9 @@ export function ImagePicker({
           ＋
         </button>
       </div>
+      {previewIdx !== null && (
+        <MediaPreview ids={mediaIds} initial={previewIdx} onClose={() => setPreviewIdx(null)} />
+      )}
       <input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={pick} />
     </div>
   )
