@@ -10,7 +10,9 @@ export const QWEATHER_API_KEY = 'dc69a3209e0949309629580dc8a89313'
 export const QWEATHER_API_HOST = 'https://n47aatrcfa.re.qweatherapi.com'
 
 // 缓存：localStorage，按「城市 location」分桶，15 分钟内复用，避免频繁调用 API
-const CACHE_PREFIX = 'titia.wx.cache.'
+// 缓存键带版本号 v2：旧版本缓存的是「每 3 小时、只取 8 点」的脏数据，发版后必须作废，
+// 否则新代码仍会读到旧缓存的逐小时点，用户看不到修复效果。
+const CACHE_PREFIX = 'titia.wx.cache.v2.'
 const CACHE_TTL = 15 * 60_000
 const CITY_KEY = 'titia.wx.city' // 用户手动切换的城市 { name, location }
 
