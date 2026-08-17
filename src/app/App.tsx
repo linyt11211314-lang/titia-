@@ -18,7 +18,6 @@ import { ShoppingPage } from '../pages/shopping/ShoppingPage'
 import { VaultPage } from '../pages/vault/VaultPage'
 import { CountdownPage } from '../pages/countdown/CountdownPage'
 import { BookPage } from '../pages/book/BookPage'
-import { CapturePage } from '../pages/book/CapturePage'
 import { ThemePage } from '../pages/theme/ThemePage'
 import { applySkin } from '../theme/skins'
 import { TodoPage } from '../pages/todo/TodoPage'
@@ -55,14 +54,12 @@ const MODULE_TAB: Record<string, string> = {
   '/todo': 'home',
   '/record': 'mine',
   '/aura-result': 'aura', // Aura 生成结果页（从 Aura 主 Tab 进入）
-  '/capture': 'book', // 一键拾光（快捷方式识别预览，属于小账内部能力，不新增导航项）
 }
 
 const DEV = import.meta.env.DEV
 
 export default function App() {
   const raw = useHashRoute()
-  // 路由路径与 query 分离：#/capture?text=… → path=/capture、query 由 CapturePage 解析
   const path = raw.split('?')[0]
   const isModule = path in MODULE_TAB
   const activeTab = isModule ? MODULE_TAB[path] : TAB_OF_PATH[path] ?? 'home'
@@ -303,7 +300,6 @@ export default function App() {
           {path === '/theme' && <ThemePage />}
           {path === '/aura' && <AuraPage />}
           {path === '/aura-result' && <AuraResultPage />}
-          {path === '/capture' && <CapturePage raw={raw} />}
         </div>
       )}
 

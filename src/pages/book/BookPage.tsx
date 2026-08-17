@@ -10,11 +10,6 @@ import { EmptyState } from '../../components/base/EmptyState'
 import { Sheet } from '../../components/base/Sheet'
 import { Field, TextInput, TextArea, ChipSelect } from '../../components/base/fields'
 import { confirmSheet } from '../../components/base/Confirm'
-import { navigate } from '../../app/useHashRoute'
-import { MediaImage } from '../../components/base/MediaImage'
-import { MediaPreview } from '../../components/base/MediaPreview'
-import { compressImage } from '../../services/media'
-import { mediaRepo } from '../../db/repos'
 import { useOverlayStore } from '../../stores/useOverlayStore'
 import { useAppStore } from '../../stores/useAppStore'
 import { useBookStore, type BookDraft } from '../../stores/useBookStore'
@@ -22,10 +17,9 @@ import { useCategoryStore } from '../../stores/useCategoryStore'
 import { useAccountStore } from '../../stores/useAccountStore'
 import { useBudgetStore } from '../../stores/useBudgetStore'
 import { useSettingsStore } from '../../stores/useSettingsStore'
-import { takeEditBillId, queuePendingBill } from '../../services/dataService'
-import { aiRecognize, getAiSystemPrompt, setAiSystemPrompt, SYSTEM_PROMPT } from '../../services/ai'
+import { queuePendingBill } from '../../services/dataService'
 import { haptic } from '../../services/haptic'
-import { RulesManager } from './RulesManager'
+import { QuickBook } from './QuickBook'
 import type { AccountEntity, CategoryEntity, TransactionEntity } from '../../db/types'
 import { SwipeRow } from '../../components/base/SwipeRow'
 
@@ -60,7 +54,7 @@ function txTypeOf(t: TransactionEntity): 'expense' | 'income' | 'transfer' {
 
 const fmtYuan = (fen: number) => `${fen < 0 ? '+' : '-'}¥${(Math.abs(fen) / 100).toFixed(2)}`
 
-// 分类显示名：二级显示「🍜 餐饮 / 午餐」，一级直接显示（CapturePage 复用）
+// 分类显示名：二级显示「🍜 餐饮 / 午餐」，一级直接显示
 export function catDisplay(name: string, categories: CategoryEntity[]): string {
   const c = categories.find((x) => x.name === name)
   if (!c) return name
@@ -148,7 +142,7 @@ function CategoryPicker({
   )
 }
 
-// ── 记一笔表单（支出/收入/转账 + 规则/AI 识别；CapturePage 复用编辑模式） ──
+// ── 记一笔表单（支出/收入/转账；手动录入） ──
 export function BookForm({
   initial,
   onSave,
@@ -162,8 +156,6 @@ export function BookForm({
     account?: string
     time?: string
     note?: string
-    mediaIds?: string[]
-    autoSource?: 'rule' | 'ai'
   }
   onSave: (d: BookDraft) => void
 }) {
@@ -207,122 +199,12 @@ export function BookForm({
   }, [accounts, defaultAccountSetting, defaultIncomeAccount, d.type, d.account])
   // 分类选择：独立底部弹层（Portal 到 body，脱离表单 Sheet 滚动上下文，iOS 可靠可点）
   const [catOpen, setCatOpen] = useState(false)
-  // 自动归类引擎来源（规则命中 / AI 识别；编辑时继承，手动改分类后清除）
-  const [autoSource, setAutoSource] = useState<'rule' | 'ai' | undefined>(initial?.autoSource)
-  // 图片附件：media 表 id 列表（支付截图，不进备注文字）
-  const [mediaIds, setMediaIds] = useState<string[]>(initial?.mediaIds ?? [])
-  const [mediaPreviewIdx, setMediaPreviewIdx] = useState<number | null>(null)
-  const mediaInputRef = useRef<HTMLInputElement>(null)
-  const pickMedia = async (file: File) => {
-    try {
-      const img = await compressImage(file)
-      const id = crypto.randomUUID()
-      await mediaRepo.create({
-        id,
-        blob: img.blob,
-        thumb: img.thumb,
-        mime: img.mime,
-        width: img.width,
-        height: img.height,
-        size: img.size,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        deletedAt: null,
-        _dirty: 1,
-        _syncedAt: null,
-      })
-      setMediaIds((p) => [...p, id])
-    } catch {
-      showToast('图片处理失败')
-    }
-  }
-  const removeMedia = async (id: string) => {
-    setMediaIds((p) => p.filter((x) => x !== id))
-    try {
-      await mediaRepo.remove(id)
-    } catch {
-      /* 忽略 */
-    }
-  }
   const set = (k: string, v: string) => setD((p) => ({ ...p, [k]: v }))
-
-  // ── 双引擎自动归类：规则优先（ruleFirst）→ AI 兜底（aiAutoCategory）──
-  const aiAutoCategory = useSettingsStore((s) => s.aiAutoCategory)
-  const ruleFirst = useSettingsStore((s) => s.ruleFirst)
-  const [aiBusy, setAiBusy] = useState(false)
-  const aiTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => { if (aiTimer.current) clearTimeout(aiTimer.current) }, [])
-  const scheduleAi = (merchant: string) => {
-    if (aiTimer.current) clearTimeout(aiTimer.current)
-    aiTimer.current = setTimeout(() => void runAiWith(merchant), 500)
-  }
-
-  // 规则识别（交易对象变化自动预填；仅支出/收入）
-  const onMerchant = (v: string) => {
-    setD((p) => ({ ...p, merchant: v }))
-    const tryRule = () => {
-      const rule = useBookStore.getState().matchRule(v, v)
-      if (rule) {
-        setD((p) => ({ ...p, merchant: v, category: rule.category ?? p.category, account: rule.account ?? p.account }))
-        setAutoSource('rule')
-        showToast(`已识别：${rule.category || '默认分类'} · ${rule.account || '默认账户'}`)
-        return true
-      }
-      return false
-    }
-    if (ruleFirst) {
-      // 规则优先：命中即用；未命中 → AI 兜底（开关开时）
-      if (!tryRule() && aiAutoCategory) scheduleAi(v)
-    } else {
-      // AI 优先：先 AI（异步），AI 失败再回退规则
-      if (aiAutoCategory) scheduleAi(v)
-      else tryRule()
-    }
-  }
-
-  // AI 识别（异步，不阻塞录入；规则未命中自动兜底 / 手动按钮触发）
-  const runAiWith = async (merchant?: string) => {
-    const m = (merchant ?? d.merchant).trim()
-    if (!m || aiBusy) return
-    setAiBusy(true)
-    try {
-      const r = await aiRecognize(m)
-      if (!r) {
-        // AI 兜底失败 → AI 优先模式回退规则
-        if (merchant && !ruleFirst) {
-          const rule = useBookStore.getState().matchRule(m, m)
-          if (rule) {
-            setD((p) => ({ ...p, category: rule.category ?? p.category, account: rule.account ?? p.account }))
-            setAutoSource('rule')
-            showToast(`已识别：${rule.category || '默认分类'} · ${rule.account || '默认账户'}`)
-          }
-        } else if (!merchant) {
-          showToast('AI 识别不可用（未配置或识别失败）')
-        }
-        return
-      }
-      setD((p) => ({
-        ...p,
-        amount: String((r.amount ?? 0) / 100),
-        merchant: m,
-        category: r.category ?? p.category,
-        account: r.account ?? p.account,
-        note: r.note ?? p.note,
-        time: r.time ?? p.time,
-      }))
-      setAutoSource('ai')
-      if (!merchant) showToast(`AI 识别：${r.merchant || m} · ${r.category || '未分类'} · ¥${((r.amount ?? 0) / 100).toFixed(2)}`)
-    } finally {
-      setAiBusy(false)
-    }
-  }
-  const runAi = () => void runAiWith()
 
   const submit = () => {
     const yuan = Number(d.amount)
     if (!yuan || Number.isNaN(yuan)) return showToast('请输入金额')
     const fen = Math.round(yuan * 100)
-    const att = mediaIds.length > 0 ? mediaIds : undefined
     if (d.type === 'transfer') {
       if (!d.account || !d.transferTo) return showToast('请选择转出与转入账户')
       if (d.account === d.transferTo) return showToast('转出与转入不能相同')
@@ -334,7 +216,6 @@ export function BookForm({
         merchant: d.merchant.trim() || '转账',
         time: d.time,
         note: d.note.trim() || undefined,
-        mediaIds: att,
       })
       return
     }
@@ -346,8 +227,6 @@ export function BookForm({
       account: d.account || undefined,
       time: d.time,
       note: d.note.trim() || undefined,
-      mediaIds: att,
-      autoSource,
     })
   }
 
@@ -402,20 +281,8 @@ export function BookForm({
         </>
       ) : (
         <>
-          <Field label="交易对象（自动识别）">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <TextInput value={d.merchant} onChange={onMerchant} placeholder="如 海底捞 / 打车 / 房租" />
-              </div>
-              <button
-                type="button"
-                onClick={() => void runAi()}
-                disabled={aiBusy || !d.merchant.trim()}
-                className="flex-shrink-0 rounded-pill bg-surface-sunken px-3 py-2.5 text-xs text-primary disabled:opacity-40"
-              >
-                {aiBusy ? '识别中…' : '🤖 AI 识别'}
-              </button>
-            </div>
+          <Field label="交易对象">
+            <TextInput value={d.merchant} onChange={(v) => set('merchant', v)} placeholder="如 海底捞 / 打车 / 房租" />
           </Field>
           <Field label="分类">
             <button
@@ -435,7 +302,6 @@ export function BookForm({
                   selected={d.category}
                   onPick={(name) => {
                     setD((p) => ({ ...p, category: name }))
-                    setAutoSource(undefined) // 手动覆盖分类 → 清除引擎来源标记
                     setCatOpen(false)
                   }}
                 />
@@ -468,54 +334,6 @@ export function BookForm({
       </Field>
       <Field label="备注（可空）">
         <TextInput value={d.note} onChange={(v) => set('note', v)} placeholder="如 和朋友聚餐" />
-      </Field>
-      {/* 图片附件（支付截图等）：不进备注文字；支持查看/删除/替换 */}
-      <Field label="图片附件（支付截图）">
-        <div className="flex flex-wrap items-center gap-2">
-          {mediaIds.map((id, idx) => (
-            <div key={id} className="relative">
-              <button
-                type="button"
-                onClick={() => setMediaPreviewIdx(idx)}
-                className="block p-0"
-                aria-label="预览附件"
-              >
-                <MediaImage id={id} className="h-16 w-16 rounded-img object-cover" />
-              </button>
-              <button
-                type="button"
-                onClick={() => removeMedia(id)}
-                aria-label={`删除附件 ${id.slice(0, 6)}`}
-                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-pill bg-accent text-[10px] font-bold text-bg"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => mediaInputRef.current?.click()}
-            className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-img bg-surface-sunken text-ink-3"
-          >
-            <span className="text-lg leading-none">＋</span>
-            <span className="text-[10px]">{mediaIds.length ? '替换' : '添加截图'}</span>
-          </button>
-        </div>
-        {mediaPreviewIdx !== null && (
-          <MediaPreview ids={mediaIds} initial={mediaPreviewIdx} onClose={() => setMediaPreviewIdx(null)} />
-        )}
-        <input
-          ref={mediaInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) void pickMedia(f)
-            e.target.value = ''
-          }}
-        />
-        <p className="mt-1 text-xs text-ink-3">截图自动压缩存储，可在详情查看或删除。</p>
       </Field>
       <button onClick={submit} className="pressable mt-2 w-full rounded-pill bg-primary px-4 py-2.5 text-sm text-bg">
         保存
@@ -824,7 +642,7 @@ function parseCsv(text: string): string[][] {
 
 // ── 主页面（小账） ──
 export function BookPage() {
-  const { transactions, loaded, load, add, update, remove, matchRule, learn } = useBookStore()
+  const { transactions, loaded, load, add, update, remove } = useBookStore()
   const { categories, loaded: catLoaded, load: loadCats, resetToPreset, create: createCat, update: updateCat, remove: removeCat } = useCategoryStore()
   const { accounts, loaded: accLoaded, load: loadAccs, create: createAcc, update: updateAcc, remove: removeAcc } = useAccountStore()
   const { budgets, loaded: bLoaded, load: loadBudgets, create: createBudget, update: updateBudget, remove: removeBudget } = useBudgetStore()
@@ -961,7 +779,7 @@ export function BookPage() {
   }, [bills])
 
   // ── 记一笔 ──
-  const openBookForm = (editing: TransactionEntity | null, presetNote?: string) => {
+  const openBookForm = (editing: TransactionEntity | null) => {
     open(
       <Sheet title={editing ? '编辑账单' : '记一笔'} onClose={close}>
         <BookForm
@@ -976,12 +794,8 @@ export function BookPage() {
                   account: editing.account,
                   time: editing.time,
                   note: editing.note,
-                  mediaIds: editing.mediaIds,
-                  autoSource: editing.autoSource,
                 }
-              : presetNote
-                ? { note: presetNote }
-                : undefined
+              : undefined
           }
           onSave={async (d) => {
             if (editing) {
@@ -994,19 +808,12 @@ export function BookPage() {
                 account: d.account,
                 time: d.time,
                 note: d.note,
-                mediaIds: d.mediaIds,
-                autoSource: d.autoSource,
               })
               showToast('已更新')
             } else {
               const tx = await add(d)
               // 跨容器桥：新增账单写入桥，另一容器（Safari/PWA）经 storage 事件自动合并刷新
               queuePendingBill(tx)
-              // 学习闭环：支出/收入未命中规则 → 沉淀（转账不参与分类学习）
-              if (d.merchant && d.txType !== 'transfer') {
-                const hit = matchRule(d.merchant)
-                if (!hit) await learn(d.merchant, d.merchant, d.category, d.account)
-              }
               showToast('已记账')
             }
             close()
@@ -1050,50 +857,14 @@ export function BookPage() {
     }
   }
 
-  // ── 自动记账（设置入口，非独立板块；不新增左侧导航） ──
-  const openAutoBook = () => {
+  // ── 记一笔（QuickBook：数字键盘 + 分类 / 自然语言，主入口） ──
+  const openQuickBook = () => {
     open(
-      <Sheet title="自动记账" onClose={close}>
-        <AutoBookContent showToast={showToast} />
+      <Sheet title="记一笔" onClose={close}>
+        <QuickBook onAdvanced={() => openBookForm(null)} />
       </Sheet>,
     )
   }
-  // 点击剪贴板图标：直接读取系统剪贴板，免去手动粘贴的两步操作
-  //  - 命中 TITIA_CAPTURE:: 前缀 → 走原有「一键拾光」识别流程（/capture 预览）
-  //  - 普通文本 → 直接带入「记一笔」备注（点一次即识别，不再需长按/系统粘贴气泡）
-  // 注：iOS WebKit 首次会弹一次系统级「允许粘贴」授权（平台强制，前端无法屏蔽），之后不再弹
-  const readClipboardNow = async (): Promise<void> => {
-    let text = ''
-    try {
-      text = (await navigator.clipboard.readText()).trim()
-    } catch {
-      showToast('无法读取剪贴板（需在 https 下并允许访问）')
-      return
-    }
-    if (!text) {
-      showToast('剪贴板为空')
-      return
-    }
-    if (text.startsWith('TITIA_CAPTURE::')) {
-      const { tryReadCaptureClipboard } = await import('../../services/captureClipboard')
-      if (await tryReadCaptureClipboard()) {
-        navigate('/capture')
-      } else {
-        showToast('该拾光数据已处理过')
-      }
-      return
-    }
-    // 普通文本：直接带入记一笔备注
-    openBookForm(null, text)
-  }
-  // 一键拾光点击预览 → 保存后进入账单详情编辑页（跨容器标记经 DataService 读取，页面不直接操作存储）
-  useEffect(() => {
-    const id = takeEditBillId()
-    if (!id) return
-    const t = useBookStore.getState().transactions.find((x) => x.id === id)
-    if (t) setTimeout(() => openBookForm(t), 150)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // ── 分类 ──
   const topCats = useMemo(() => categories.filter((c) => !c.parent).sort((a, b) => a.order - b.order), [categories])
@@ -1513,25 +1284,7 @@ export function BookPage() {
                   <h2 className="text-lg font-semibold text-ink">小账</h2>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => void readClipboardNow()}
-                      aria-label="从剪贴板读取（拾光或文本）"
-                      title="读取剪贴板：拾光数据自动识别，普通文本带入记一笔备注"
-                      className="pressable flex h-8 w-8 items-center justify-center rounded-pill bg-surface-sunken text-ink-2"
-                    >
-                      📥
-                    </button>
-                    <button
-                      onClick={openAutoBook}
-                      aria-label="自动记账设置"
-                      className="pressable flex h-8 w-8 items-center justify-center rounded-pill bg-surface-sunken text-ink-2"
-                    >
-                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => openBookForm(null)}
+                      onClick={() => openQuickBook()}
                       className="pressable rounded-pill bg-primary px-3.5 py-1.5 text-xs font-semibold text-bg"
                     >
                       + 记一笔
@@ -1549,13 +1302,13 @@ export function BookPage() {
                 </button>
                 </div>
 
-                {/* 记账小贴士（Prompt 引导）：自然语言 / 剪贴板快速记账；可关闭 */}
+                {/* 记账小贴士（Prompt 引导）：数字键盘 + 分类 / 自然语言；可关闭 */}
                 {bookTipOpen && (
                   <div className="mb-3 flex items-start gap-2 rounded-card bg-primary-soft px-4 py-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-primary">💡 快速记账提示</p>
                       <p className="mt-1 text-xs leading-relaxed text-ink-2">
-                        点右上角 <span className="font-medium">📥</span> 可读取剪贴板里的账单截图文字自动识别；或在「记一笔」里直接输入「午餐 -32」「打车 18.5 元」也能智能解析金额与分类。
+                        输入金额后点分类即可完成记账；也可直接打字如「午餐35」「工资8000」自动解析。需要填交易对象、账户或备注时，点「转账 / 高级记账」。
                       </p>
                     </div>
                     <button
@@ -1654,7 +1407,7 @@ export function BookPage() {
                             编辑
                           </button>
                           <button
-                            onClick={() => openBookForm(null)}
+                            onClick={() => openQuickBook()}
                             className="pressable rounded-pill bg-primary px-3.5 py-1.5 text-xs font-semibold text-bg"
                           >
                             + 记一笔
@@ -1722,7 +1475,7 @@ export function BookPage() {
                     image={undefined}
                     text={billFilter === 'all' ? '还没有账单，记下第一笔吧' : `还没有${BILL_FILTERS.find((f) => f.key === billFilter)?.label}账单`}
                     action={
-                      <button onClick={() => openBookForm(null)} className="rounded-pill bg-surface-sunken px-4 py-2 text-sm text-ink-2">
+                      <button onClick={() => openQuickBook()} className="rounded-pill bg-surface-sunken px-4 py-2 text-sm text-ink-2">
                         记一笔
                       </button>
                     }
@@ -1781,12 +1534,6 @@ export function BookPage() {
                                       <span className="block truncate text-sm font-medium text-ink">
                                         {t.merchant || (isTransfer ? '转账' : t.category) || '未命名'}
                                       </span>
-                                      {t.autoSource === 'rule' && (
-                                        <span className="flex-shrink-0 rounded-pill bg-primary-soft px-1.5 py-px text-[10px] leading-4 text-primary">⚡规则</span>
-                                      )}
-                                      {t.autoSource === 'ai' && (
-                                        <span className="flex-shrink-0 rounded-pill bg-accent-soft px-1.5 py-px text-[10px] leading-4 text-accent">🤖AI</span>
-                                      )}
                                     </span>
                                     <span className="mt-0.5 block truncate text-xs text-ink-3">
                                       {isTransfer
@@ -2567,295 +2314,6 @@ function AccountDetail({
           })
         )}
       </div>
-    </div>
-  )
-}
-
-// ── 自动记账设置内容（一键拾光等辅助记账能力；独立组件以使用 hooks） ──
-// 默认扣款账户：从「应用设置」迁移至此统一入口（绑定同一 settings 字段 app.defaultAccount）
-function DefaultAccountRow({ showToast }: { showToast: (m: string) => void }) {
-  const defaultAccount = useSettingsStore((s) => s.defaultAccount)
-  const patchApp = useSettingsStore((s) => s.patchApp)
-  const accounts = useAccountStore((s) => s.accounts)
-  const accLoaded = useAccountStore((s) => s.loaded)
-  const loadAccs = useAccountStore((s) => s.load)
-  useEffect(() => {
-    if (!accLoaded) loadAccs()
-  }, [accLoaded, loadAccs])
-  return (
-    <div className="rounded-card bg-surface-sunken/60 p-4">
-      <p className="font-medium text-ink">默认扣款账户</p>
-      <p className="mt-0.5 text-xs text-ink-2">OCR 识别内容带账户时优先识别填充；未带则用此默认账户。</p>
-      <select
-        value={defaultAccount}
-        onChange={(e) => {
-          void patchApp({ defaultAccount: e.target.value })
-          showToast(e.target.value ? `默认扣款：${e.target.value}` : '已清除默认扣款账户')
-        }}
-        className="titia-input mt-2 w-full max-w-[220px] rounded-btn bg-surface px-2.5 py-1.5 text-sm text-ink outline-none"
-      >
-        <option value="">未设置</option>
-        {accounts.map((a) => (
-          <option key={a.id} value={a.name}>
-            {a.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
-}
-
-function AutoBookContent({ showToast }: { showToast: (m: string) => void }) {
-  const [showSteps, setShowSteps] = useState(false)
-  const [showRules, setShowRules] = useState(false)
-  // 双引擎开关（设置持久化）
-  const aiAutoCategory = useSettingsStore((s) => s.aiAutoCategory)
-  const ruleFirst = useSettingsStore((s) => s.ruleFirst)
-  const patchApp = useSettingsStore((s) => s.patchApp)
-
-  // 手动读取剪贴板拾光数据（需求七：点击后直接 读取→解析→生成识别结果，无中间提示；
-  // iOS 系统级「允许粘贴」弹窗由平台弹出，前端无法屏蔽，其余中间文案一律不出现）
-  const readClipboard = async () => {
-    const { tryReadCaptureClipboard } = await import('../../services/captureClipboard')
-    const found = await tryReadCaptureClipboard()
-    if (found) {
-      navigate('/capture')
-    } else {
-      showToast('剪贴板没有拾光数据（需以 TITIA_CAPTURE:: 开头）')
-    }
-  }
-
-  // 识别规则管理子视图（在自动记账 Sheet 内切换）
-  if (showRules) {
-    return (
-      <div className="flex flex-col gap-3">
-        <button
-          onClick={() => setShowRules(false)}
-          className="pressable self-start rounded-pill bg-surface-sunken px-3 py-1.5 text-xs text-ink-2"
-        >
-          ‹ 返回自动记账
-        </button>
-        <RulesManager />
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      {/* 📸 一键拾光 */}
-      <div className="rounded-card bg-surface-sunken/60 p-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-primary-soft text-xl">📸</span>
-          <div>
-            <p className="font-medium text-ink">一键拾光</p>
-            <p className="mt-0.5 text-xs text-ink-2">截图支付凭证，自动识别生成账单</p>
-          </div>
-        </div>
-        <p className="mt-3 text-xs leading-relaxed text-ink-2">
-          自动记账中的一种识别方式：通过 iOS 快捷方式快速录入消费记录。截图 → 快捷方式 →
-          识别账单信息 → 生成待确认记录 → 保存到账单（复用现有分类/账户/预算/资产体系）。
-        </p>
-        <button
-          onClick={() => setShowSteps((v) => !v)}
-          className="pressable mt-3 w-full rounded-pill bg-primary px-4 py-2.5 text-sm font-medium text-bg"
-        >
-          设置快捷方式
-        </button>
-        {showSteps && (
-          <div className="mt-3 rounded-card bg-surface p-3 text-xs leading-relaxed text-ink-2">
-            <p className="mb-2 font-medium text-ink">剪贴板接力（不打开网页）：</p>
-            <ol className="list-decimal space-y-2 pl-4">
-              <li>
-                <b>截屏</b>：添加动作「截屏」——运行时自动截取当前屏幕。
-              </li>
-              <li>
-                <b>从图像中提取文本（OCR）</b>：添加动作「从图像中提取文本」，点「图像」参数选「截屏」——
-                输出魔法变量「提取的文本」（`Text`）。
-              </li>
-              <li>
-                <b>文本（加前缀）</b>：添加动作「文本」，内容填
-                <code className="mx-0.5 rounded bg-surface-sunken px-1">TITIA_CAPTURE::</code>
-                ，并把「提取的文本」变量接在后面。
-              </li>
-              <li>
-                <b>复制到剪贴板</b>：添加动作「复制到剪贴板」，参数选上一步的「文本」。
-              </li>
-              <li>
-                <b>（可选）显示通知</b>：添加动作「显示通知」，内容如"已拾光，打开 Titia 确认"。
-              </li>
-            </ol>
-            <div className="mt-2 rounded-pill bg-surface-sunken/60 p-2 text-[11px]">
-              <p className="mb-1 font-medium text-ink-2">完成后：保存快捷方式 → 长按 → 添加到主屏幕。</p>
-              <p className="text-ink-3">桌面点「一键拾光」→ 截屏 → OCR → 写入剪贴板 → 打开 Titia App → 自动识别预览（不再跳转网页）。</p>
-            </div>
-            <button
-              onClick={readClipboard}
-              className="pressable mt-2 w-full rounded-pill bg-surface-sunken px-3 py-2 text-xs text-primary"
-            >
-              📥 从剪贴板读取拾光数据
-            </button>
-            <p className="mt-2 text-[11px] text-ink-3">
-              备用入口：若 App 启动未自动检测到，可点上方按钮手动读取（剪贴板需以 TITIA_CAPTURE:: 开头）。
-            </p>
-          </div>
-        )}
-        <button
-          onClick={readClipboard}
-          className="pressable mt-2 w-full rounded-pill bg-surface-sunken px-3 py-2 text-xs text-primary"
-        >
-          📥 从剪贴板读取拾光数据
-        </button>
-      </div>
-
-      {/* 默认扣款账户（已从「应用设置」迁移至此统一入口） */}
-      <DefaultAccountRow showToast={showToast} />
-
-      {/* ⚡ 识别规则：关键词/交易方 → 自动归类（双引擎融合） */}
-      <button
-        onClick={() => setShowRules(true)}
-        className="pressable flex items-center justify-between rounded-card bg-surface-sunken/60 p-4 text-left"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-highlight-soft text-xl">⚡</span>
-          <div>
-            <p className="font-medium text-ink">识别规则</p>
-            <p className="mt-0.5 text-xs text-ink-2">关键词/交易方命中 → 自动预填分类与账户</p>
-          </div>
-        </div>
-        <span className="text-xs text-ink-3">管理 ›</span>
-      </button>
-
-      {/* 双引擎开关：AI 自动识别 / 规则优先 */}
-      <ToggleRow
-        label="AI 自动识别"
-        desc="规则未命中时自动用 AI 识别分类（需已在记一笔处配置 AI Key）"
-        on={aiAutoCategory}
-        onChange={(v) => void patchApp({ aiAutoCategory: v })}
-      />
-      <ToggleRow
-        label="规则优先于 AI"
-        desc="开启：先规则后 AI；关闭：先 AI 后规则"
-        on={ruleFirst}
-        onChange={(v) => void patchApp({ ruleFirst: v })}
-      />
-
-      {/* 🤖 自定义识别提示词（直接接入 API system role） */}
-      <AiPromptEditor />
-
-      {/* 说明：自动记账定位 */}
-      <div className="rounded-card bg-surface p-4 text-xs leading-relaxed text-ink-2">
-        <p className="mb-1 font-medium text-ink">自动记账</p>
-        <p>小账内部的辅助记账能力，不是独立功能板块。识别结果与手动记账进入同一套账单 / 分类 / 账户 / 预算 / 资产统计。</p>
-        <p className="mt-2">未来扩展：图片截图识别、语音识别、银行流水导入、AI 整理。</p>
-      </div>
-    </div>
-  )
-}
-
-// 设置开关行（AI 自动识别 / 规则优先于 AI）
-function ToggleRow({ label, desc, on, onChange }: { label: string; desc: string; on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-card bg-surface-sunken/60 p-4">
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-ink">{label}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-ink-2">{desc}</p>
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(!on)}
-        aria-pressed={on}
-        className={`relative h-7 w-12 flex-shrink-0 rounded-pill transition-colors ${on ? 'bg-primary' : 'bg-surface'}`}
-      >
-        <span
-          className={`absolute top-1 h-5 w-5 rounded-pill bg-bg shadow-sm transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`}
-        />
-      </button>
-    </div>
-  )
-}
-
-// 自定义 AI 识别系统提示词编辑器（直接写入 localStorage，下次 aiRecognize 即生效）
-function AiPromptEditor() {
-  const [text, setText] = useState(() => getAiSystemPrompt())
-  const [expanded, setExpanded] = useState(false)
-  const dirtyRef = useRef(false)
-
-  const handleSave = () => {
-    setAiSystemPrompt(text)
-    dirtyRef.current = false
-  }
-
-  // blur 时自动保存
-  const handleBlur = () => {
-    if (dirtyRef.current) handleSave()
-  }
-
-  const handleReset = () => {
-    void confirmSheet('恢复默认提示词', '将清除自定义提示词并恢复内置默认，下次 AI 识别即使用默认 prompt。').then((ok) => {
-      if (!ok) return
-      setText('')
-      setAiSystemPrompt('')
-      setExpanded(false)
-    })
-  }
-
-  const hasCustom = text.trim().length > 0
-
-  return (
-    <div className="flex flex-col gap-2 rounded-card bg-surface-sunken/60 p-4">
-      {/* 折叠行 */}
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="pressable flex w-full items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-primary-soft text-xl">🤖</span>
-          <div>
-            <p className="font-medium text-ink">自定义识别提示词</p>
-            <p className="mt-0.5 text-xs text-ink-2">
-              {hasCustom ? '已设置自定义 prompt（覆盖内置默认）' : '使用内置默认提示词'}
-            </p>
-          </div>
-        </div>
-        <span className={`text-xs text-ink-3 transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
-      </button>
-
-      {/* 展开编辑区 */}
-      {expanded && (
-        <>
-          <textarea
-            value={text}
-            onChange={(e) => { setText(e.target.value); dirtyRef.current = true }}
-            onBlur={handleBlur}
-            rows={6}
-            placeholder="输入自定义系统提示词…&#10;&#10;留空则使用内置默认提示词（含分类列表、金额规则、合并/去重规则）。&#10;自定义内容将直接作为 API 的 system role 发送。"
-            className="w-full resize-y rounded-lg border border-line bg-bg p-3 text-xs leading-relaxed text-ink outline-none focus:border-primary"
-          />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-ink-3">{text.length} 字符</span>
-            <div className="flex gap-2">
-              {hasCustom && (
-                <button
-                  onClick={handleReset}
-                  className="pressable rounded-pill px-3 py-1.5 text-xs text-ink-2"
-                >
-                  恢复默认
-                </button>
-              )}
-              <button
-                onClick={handleSave}
-                className="pressable rounded-pill bg-primary px-4 py-1.5 text-xs font-medium text-bg"
-              >
-                保存
-              </button>
-            </div>
-          </div>
-          <p className="text-[11px] leading-relaxed text-ink-3">
-            提示词将作为 DeepSeek API 的 <code className="rounded bg-surface-sunken px-1">system</code> role 直接发送。
-            修改后下次「AI 自动识别」立即生效。建议保留 JSON 输出格式与分类列表约束，否则识别结果可能异常。
-          </p>
-        </>
-      )}
     </div>
   )
 }
