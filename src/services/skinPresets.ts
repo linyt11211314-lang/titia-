@@ -31,6 +31,27 @@ export async function loadPresetSkins(): Promise<Skin[]> {
       cache = SKINS.slice()
     } else {
       cache = rows.map((r) => r.skin).filter((s) => s && s.id && s.light && s.dark)
+      // 增量合并：把 SKINS 代码常量里「持久化预设表没有」的皮肤补进列表与 IndexedDB。
+      // 这样新增内置皮肤（如角色皮肤）会对老用户自动出现，且不破坏他们对其它预设皮肤的编辑。
+      const present = new Set(cache.map((s) => s.id))
+      const missing = SKINS.filter((s) => !present.has(s.id))
+      if (missing.length) {
+        let maxOrder = rows.reduce((m, r) => Math.max(m, r.order ?? 0), -1)
+        const now = Date.now()
+        const seeds: PresetSkinRow[] = missing.map((s, i) => ({
+          id: s.id,
+          name: s.name,
+          createdAt: now + i,
+          order: maxOrder + 1 + i,
+          skin: s,
+        }))
+        try {
+          await db.presetSkins.bulkPut(seeds)
+        } catch {
+          /* 忽略写入错误，仅内存补充也能让本次会话可用 */
+        }
+        cache = cache.concat(missing)
+      }
     }
   } catch {
     cache = SKINS.slice() // IDB 不可用兜底

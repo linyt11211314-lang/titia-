@@ -17,6 +17,7 @@ import {
   resetPresetSkins,
 } from '../../services/skinPresets'
 import { confirmSheet } from '../../components/base/Confirm'
+import { CinnamorollMascot } from '../../components/cinnamoroll/CinnamorollMascot'
 
 // Titia 时序 · 主题中心（全局换肤入口）
 // 选择皮肤 / 深浅模式后即时全局生效，并保存在本机。
@@ -240,6 +241,53 @@ export function ThemePage() {
   const renderPreset = (s: Skin) => {
     const on = skin === s.id
     const p = mode === 'dark' ? s.dark : s.light
+    // 玉桂狗角色皮肤：放大展示吉祥物作为主视觉（区别于纯色皮肤）
+    if (s.id === 'cinnamoroll') {
+      return (
+        <div
+          key={s.id}
+          className={`relative flex items-center gap-3 overflow-hidden rounded-card bg-surface p-4 shadow-soft ${
+            on ? 'ring-2 ring-primary' : ''
+          }`}
+        >
+          {/* 背景大水印，强化角色识别 */}
+          <div className="pointer-events-none absolute -right-5 -bottom-6 opacity-[0.08]">
+            <CinnamorollMascot size={140} />
+          </div>
+          <button
+            onClick={() => setSkin(s.id)}
+            aria-pressed={on}
+            className="relative flex min-w-0 flex-1 items-center gap-3 text-left"
+          >
+            <CinnamorollMascot size={56} className="flex-shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium text-ink">{s.name}</span>
+              <span className="mt-0.5 block truncate text-xs text-ink-3">角色皮肤 · 玉桂狗主视觉</span>
+              <span className="mt-1.5 flex gap-1.5">
+                <span className="h-5 w-5 rounded-pill" style={{ background: p.primary }} />
+                <span className="h-5 w-5 rounded-pill" style={{ background: p.accent }} />
+                <span className="h-5 w-5 rounded-pill" style={{ background: p.highlight }} />
+              </span>
+            </span>
+            {on && <span className="flex-shrink-0 text-sm text-primary">使用中</span>}
+          </button>
+          <button
+            onClick={() => enterEditPreset(s)}
+            aria-label="编辑皮肤"
+            className="pressable relative flex-shrink-0 rounded-pill bg-surface-sunken px-2.5 py-1.5 text-xs text-ink-2 active:opacity-70"
+          >
+            编辑
+          </button>
+          <button
+            onClick={() => onDeletePreset(s.id)}
+            aria-label="删除皮肤"
+            className="pressable relative flex-shrink-0 rounded-pill bg-surface-sunken px-2.5 py-1.5 text-xs text-ink-2 active:opacity-70"
+          >
+            删除
+          </button>
+        </div>
+      )
+    }
     return (
       <div
         key={s.id}
