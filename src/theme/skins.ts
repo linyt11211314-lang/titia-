@@ -147,23 +147,6 @@ export const SKINS: Skin[] = [
       highlight: '#f05fa0', 'highlight-soft': '#331e2a', ink: '#f2efe4', 'ink-2': '#a8a480', 'ink-3': '#747458', line: '#30322a',
     },
   },
-  {
-    id: 'cinnamoroll',
-    name: '玉桂狗天空',
-    group: 'character',
-    motif: 'cloud',
-    note: '天空蓝 × 云朵白 · 软绵绵治愈系（玉桂狗气质，仅取配色与云朵装饰）',
-    light: {
-      bg: '#F4F9FE', surface: '#FFFFFF', 'surface-sunken': '#EAF2FB',
-      primary: '#3E86CB', 'primary-soft': '#DCEFFB', accent: '#2E9E7E', 'accent-soft': '#D6F0E6',
-      highlight: '#FFD98A', 'highlight-soft': '#FFF3D6', ink: '#2C3E6B', 'ink-2': '#5A6B8C', 'ink-3': '#7E8DAE', line: '#DCE6F2',
-    },
-    dark: {
-      bg: '#16223A', surface: '#243650', 'surface-sunken': '#111B2E',
-      primary: '#7FB8E6', 'primary-soft': '#1E3A57', accent: '#6FD3B0', 'accent-soft': '#1C3A33',
-      highlight: '#FFD98A', 'highlight-soft': '#3A3320', ink: '#EAF2FB', 'ink-2': '#A9BBD4', 'ink-3': '#8597B4', line: '#32445E',
-    },
-  },
 ]
 
 const TOKENS: (keyof Palette)[] = [

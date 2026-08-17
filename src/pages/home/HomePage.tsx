@@ -14,8 +14,6 @@ import { useTodoStore, isTodoDue } from '../../stores/useTodoStore'
 import { useShoppingStore } from '../../stores/useShoppingStore'
 import { useBookStore } from '../../stores/useBookStore'
 import { useAppStore } from '../../stores/useAppStore'
-import { useSettingsStore } from '../../stores/useSettingsStore'
-import { CinnamorollMascot } from '../../components/cinnamoroll/CinnamorollMascot'
 import { navigate } from '../../app/useHashRoute'
 import { getWeatherDetail, type WeatherDetail } from '../../services/weather'
 import { WeatherSheet } from '../../components/weather/WeatherSheet'
@@ -98,7 +96,6 @@ export function HomePage() {
   const { items: shopItems, loaded: shopLoaded, load: shopLoad, toggle: shopToggle } = useShoppingStore()
   const { transactions, loaded: bookLoaded, load: loadBook } = useBookStore()
   const showToast = useAppStore((s) => s.showToast)
-  const skin = useSettingsStore((s) => s.skin)
   const open = useOverlayStore((s) => s.open)
   const close = useOverlayStore((s) => s.close)
   const [weather, setWeather] = useState<WeatherDetail | null>(null)
@@ -184,42 +181,20 @@ export function HomePage() {
     <div className="flex h-full flex-col">
       {/* Banner（固定不滚动；顶部安全区由全局遮罩兜底，标签在左上角） */}
       <div className="shrink-0 px-5 pb-3 pt-[calc(var(--safe-top)+12px)]">
-        {skin === 'cinnamoroll' ? (
-          /* 玉桂狗主题：吉祥物作为打开 App 第一眼主视觉（Hero） */
-          <div className="relative overflow-hidden rounded-card bg-surface p-5 shadow-card">
-            <div className="absolute right-4 top-4 z-20">{weatherModule}</div>
-            <div className="flex items-center gap-4">
-              <div className="relative shrink-0">
-                <div className="absolute -inset-3 rounded-full bg-[#DCEFFB] opacity-70 blur-sm" />
-                <CinnamorollMascot size={104} className="relative z-10" />
-              </div>
-              <div className="relative min-w-0">
-                <p className="text-xs text-ink-3">玉桂狗天空</p>
-                <h1 className="mt-0.5 text-2xl font-semibold text-ink">{GREET()}</h1>
-                {/* 世界时钟：伦敦 / 迪拜 实时时间 */}
-                <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] leading-tight text-ink-2">
-                  <TimeDisplay label="伦敦" timeZone="Europe/London" />
-                  <TimeDisplay label="迪拜" timeZone="Asia/Dubai" />
-                </div>
-              </div>
+        {/* Dashboard：我的生活正在发生什么 */}
+        <div className="relative overflow-hidden flex items-start justify-between rounded-card bg-surface p-5 shadow-card">
+          <MotifCorner size={88} opacity={0.1} />
+          <div className="relative">
+            <p className="text-xs text-ink-3">Titia 时序</p>
+            <h1 className="mt-0.5 text-2xl font-semibold text-ink">{GREET()}</h1>
+            {/* 世界时钟：伦敦 / 迪拜 实时时间（替换原静态文案），放在 Banner 左下角，避免遮挡右侧天气 */}
+            <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] leading-tight text-ink-2">
+              <TimeDisplay label="伦敦" timeZone="Europe/London" />
+              <TimeDisplay label="迪拜" timeZone="Asia/Dubai" />
             </div>
           </div>
-        ) : (
-          /* 其它主题：原 Dashboard 卡片 */
-          <div className="relative overflow-hidden flex items-start justify-between rounded-card bg-surface p-5 shadow-card">
-            <MotifCorner size={88} opacity={0.1} />
-            <div className="relative">
-              <p className="text-xs text-ink-3">Titia 时序</p>
-              <h1 className="mt-0.5 text-2xl font-semibold text-ink">{GREET()}</h1>
-              {/* 世界时钟：伦敦 / 迪拜 实时时间（替换原静态文案），放在 Banner 左下角，避免遮挡右侧天气 */}
-              <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] leading-tight text-ink-2">
-                <TimeDisplay label="伦敦" timeZone="Europe/London" />
-                <TimeDisplay label="迪拜" timeZone="Asia/Dubai" />
-              </div>
-            </div>
-            {weatherModule}
-          </div>
-        )}
+          {weatherModule}
+        </div>
       </div>
 
       {/* 下方内容区：打卡 / 待办 / 购物清单（独立滚动 + 下拉刷新，不被底部导航遮挡） */}
