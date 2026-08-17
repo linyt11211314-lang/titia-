@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { useBookStore } from '../../stores/useBookStore'
 import { useAppStore } from '../../stores/useAppStore'
+import { useCategoryStore } from '../../stores/useCategoryStore'
+import type { CategoryEntity } from '../../db/types'
 import { queuePendingBill } from '../../services/dataService'
 import { TextInput } from '../../components/base/fields'
 
@@ -9,21 +11,14 @@ import { TextInput } from '../../components/base/fields'
 // 方式一：数字键盘 + 分类（点分类即记账，极简 3 步：输金额 → 点分类 → 完成）
 // 方式二：自然语言输入（兜底，自动解析金额/备注/收支）
 // 设计：不设置账户（极简），记账数据结构与资产联动逻辑不变（数据层 useBookStore.add 复用）。
+//
+// 分类按钮直接取自小账分类 store（useCategoryStore），与小账已有分类实时同步：
+// 用户在「小账 → 分类管理」增删改的分类，会立即反映到快记入口，不再写死 8 个图标。
 
-// 8 个快捷分类（图标 → 分类名 + 收支类型）
-// 对应现有分类体系：餐饮/购物/交通出行/收入/住房生活 为一级；
-// 居家=住房生活；护肤=购物二级；数码 取「手机」二级（覆盖多数数码消费）；其他=一级。
-type QuickCat = { icon: string; label: string; cat: string; tx: 'expense' | 'income' }
-const QUICK_CATS: QuickCat[] = [
-  { icon: '☕️', label: '餐饮', cat: '餐饮', tx: 'expense' },
-  { icon: '🛒', label: '购物', cat: '购物', tx: 'expense' },
-  { icon: '🚇', label: '交通', cat: '交通出行', tx: 'expense' },
-  { icon: '💰', label: '收入', cat: '收入', tx: 'income' },
-  { icon: '🏠', label: '居家', cat: '住房生活', tx: 'expense' },
-  { icon: '📱', label: '数码', cat: '手机', tx: 'expense' },
-  { icon: '💄', label: '护肤', cat: '护肤', tx: 'expense' },
-  { icon: '❓', label: '其他', cat: '其他', tx: 'expense' },
-]
+// 收入判定：一级名为「收入」或父级为「收入」（与小账分类体系一致）
+function isIncomeCat(c: CategoryEntity): boolean {
+  return c.name === '收入' || c.parent === '收入'
+}
 
 // 自然语言解析：金额 + 备注 + 收支判定
 // 规则：数字前/后的文字作为备注，数字为金额；出现 工资/奖金/退款/红包 等 → 收入
@@ -58,9 +53,22 @@ function parseNatural(
 export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
   const add = useBookStore((s) => s.add)
   const showToast = useAppStore((s) => s.showToast)
+  const categories = useCategoryStore((s) => s.categories)
+  const loadCats = useCategoryStore((s) => s.load)
   const [raw, setRaw] = useState('')
   const [nl, setNl] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // 确保分类已加载（小账页通常已 load，这里兜底）
+  useEffect(() => {
+    if (!categories.length) void loadCats()
+  }, [categories.length, loadCats])
+
+  // 快记分类 = 小账全部一级分类（与分类管理实时同步）
+  const quickCats = useMemo(
+    () => categories.filter((c) => !c.parent).sort((a, b) => a.order - b.order),
+    [categories],
+  )
 
   const press = (k: string) => {
     setRaw((prev) => {
@@ -82,22 +90,23 @@ export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
   const yuan = parseFloat(raw || '0')
   const fen = Math.round(yuan * 100)
 
-  const doSave = async (cat: QuickCat) => {
+  const doSave = async (c: CategoryEntity) => {
     if (!fen || fen <= 0) {
       showToast('请输入金额')
       return
     }
+    const txType = isIncomeCat(c) ? 'income' : 'expense'
     setSaving(true)
     try {
       const tx = await add({
-        amount: cat.tx === 'expense' ? fen : -fen,
-        txType: cat.tx,
-        category: cat.cat,
+        amount: txType === 'expense' ? fen : -fen,
+        txType,
+        category: c.name,
         time: dayjs().format('YYYY-MM-DDTHH:mm'),
         source: 'manual',
       })
       queuePendingBill(tx)
-      showToast(cat.tx === 'income' ? `已记收入 ¥${(fen / 100).toFixed(2)}` : `已记支出 ¥${(fen / 100).toFixed(2)}`)
+      showToast(txType === 'income' ? `已记收入 ¥${(fen / 100).toFixed(2)}` : `已记支出 ¥${(fen / 100).toFixed(2)}`)
       setRaw('')
     } finally {
       setSaving(false)
@@ -157,22 +166,26 @@ export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
         清空
       </button>
 
-      {/* 分类（方式一：点分类即记账） */}
+      {/* 分类（方式一：点分类即记账，分类取自小账分类 store 实时同步） */}
       <p className="text-xs font-medium text-ink-3">点分类完成记账</p>
-      <div className="grid grid-cols-4 gap-2">
-        {QUICK_CATS.map((c) => (
-          <button
-            key={c.label}
-            type="button"
-            disabled={saving}
-            onClick={() => void doSave(c)}
-            className="pressable flex flex-col items-center gap-1 rounded-card bg-surface px-1 py-3 active:scale-95"
-          >
-            <span className="text-2xl leading-none">{c.icon}</span>
-            <span className="text-xs text-ink">{c.label}</span>
-          </button>
-        ))}
-      </div>
+      {quickCats.length === 0 ? (
+        <p className="text-xs text-ink-3">分类加载中…</p>
+      ) : (
+        <div className="grid grid-cols-4 gap-2">
+          {quickCats.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              disabled={saving}
+              onClick={() => void doSave(c)}
+              className="pressable flex flex-col items-center gap-1 rounded-card bg-surface px-1 py-3 active:scale-95"
+            >
+              <span className="text-2xl leading-none">{c.icon === '·' ? '📁' : c.icon}</span>
+              <span className="text-xs text-ink">{c.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 自然语言（方式二：兜底） */}
       <div className="rounded-card bg-surface-sunken/50 p-3">
