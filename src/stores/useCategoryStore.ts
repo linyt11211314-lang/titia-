@@ -19,8 +19,10 @@ interface CategoryState {
   load: () => Promise<void>
   /** 硬清空全部分类并恢复为预设体系（CAT_TREE）；手动触发，不自动抹除用户后续编辑 */
   resetToPreset: () => Promise<void>
-  create: (input: { name: string; icon: string; defaultAccount?: string; parent?: string }) => Promise<void>
+  create: (input: { name: string; icon: string; defaultAccount?: string; parent?: string; pinned?: boolean }) => Promise<void>
   update: (id: string, patch: Partial<CategoryEntity>) => Promise<void>
+  /** 切换某分类的「钉选为常用」（快记入口常驻） */
+  togglePin: (id: string) => Promise<void>
   remove: (id: string) => Promise<void>
 }
 
@@ -68,6 +70,8 @@ function buildPresetCategories(): CategoryEntity[] {
         name: sub,
         icon: '·',
         parent: top.name,
+        // 默认钉选高频二级分类（护肤/手机），使其在快记「常用」区常驻
+        pinned: (top.name === '购物' && (sub === '手机' || sub === '护肤')) || undefined,
         order: order++,
         createdAt: now + order,
         updatedAt: now + order,
@@ -80,7 +84,7 @@ function buildPresetCategories(): CategoryEntity[] {
   return presets
 }
 
-export const useCategoryStore = create<CategoryState>((set) => ({
+export const useCategoryStore = create<CategoryState>((set, get) => ({
   categories: [],
   loaded: false,
 
@@ -100,7 +104,24 @@ export const useCategoryStore = create<CategoryState>((set) => ({
           set({ categories: presets, loaded: true })
           return
         }
-        set({ categories: list.sort((a, b) => a.order - b.order), loaded: true })
+        // 一次性种子：老用户（库非空、且尚无任何「钉选常用」）默认把高频二级
+        // 手机/护肤 钉选到快记入口，使「一级 + 钉选二级」布局立即可见。
+        // 用 localStorage 守卫，每容器仅跑一次，且用户一旦手动取消钉选便不再回写。
+        const SEED_KEY = 'titia:quickPinSeeded'
+        let finalList = list
+        if (!localStorage.getItem(SEED_KEY) && !list.some((c) => c.pinned)) {
+          const toPin = list.filter((c) => c.parent === '购物' && (c.name === '手机' || c.name === '护肤'))
+          if (toPin.length) {
+            for (const c of toPin) await updateCategory(c.id, { pinned: true })
+            finalList = list.map((c) => (toPin.some((p) => p.id === c.id) ? { ...c, pinned: true } : c))
+          }
+          try {
+            localStorage.setItem(SEED_KEY, '1')
+          } catch {
+            /* 忽略隐私模式写入失败 */
+          }
+        }
+        set({ categories: finalList.sort((a, b) => a.order - b.order), loaded: true })
       } finally {
         loadInflight = null
       }
@@ -125,6 +146,7 @@ export const useCategoryStore = create<CategoryState>((set) => ({
       icon: input.icon.trim() || '✨',
       defaultAccount: input.defaultAccount || undefined,
       parent: input.parent || undefined,
+      pinned: input.pinned,
       order: Date.now(),
     } as Omit<CategoryEntity, keyof CategoryEntity>)
     set((s) => ({ categories: [...s.categories, c].sort((x, y) => x.order - y.order) }))
@@ -134,6 +156,14 @@ export const useCategoryStore = create<CategoryState>((set) => ({
   update: async (id, patch) => {
     await updateCategory(id, patch)
     set((s) => ({ categories: s.categories.map((c) => (c.id === id ? { ...c, ...patch } : c)) }))
+    useAppStore.getState().bumpDataEpoch()
+  },
+
+  togglePin: async (id) => {
+    const cur = get().categories.find((c) => c.id === id)
+    if (!cur) return
+    await updateCategory(id, { pinned: !cur.pinned })
+    set((s) => ({ categories: s.categories.map((c) => (c.id === id ? { ...c, pinned: !cur.pinned } : c)) }))
     useAppStore.getState().bumpDataEpoch()
   },
 

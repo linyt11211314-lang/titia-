@@ -8,7 +8,7 @@ import { reloadAll } from '../../services/reload'
 import { Card } from '../../components/base/Card'
 import { EmptyState } from '../../components/base/EmptyState'
 import { Sheet } from '../../components/base/Sheet'
-import { Field, TextInput, TextArea, ChipSelect } from '../../components/base/fields'
+import { Field, TextInput, TextArea, ChipSelect, ToggleRow } from '../../components/base/fields'
 import { confirmSheet } from '../../components/base/Confirm'
 import { useOverlayStore } from '../../stores/useOverlayStore'
 import { useAppStore } from '../../stores/useAppStore'
@@ -348,9 +348,9 @@ function CategoryForm({
   parents,
   onSave,
 }: {
-  initial: { name: string; icon: string; parent: string }
+  initial: { name: string; icon: string; parent: string; pinned?: boolean }
   parents: { name: string; icon: string }[]
-  onSave: (d: { name: string; icon: string; parent: string }) => void
+  onSave: (d: { name: string; icon: string; parent: string; pinned?: boolean }) => void
 }) {
   const [d, setD] = useState(initial)
   return (
@@ -375,8 +375,14 @@ function CategoryForm({
           ))}
         </select>
       </Field>
+      <ToggleRow
+        label="钉选为常用"
+        desc="开启后，此分类在快记入口（数字键盘上方）常驻显示，点一下即记账"
+        checked={!!d.pinned}
+        onChange={(v) => setD({ ...d, pinned: v })}
+      />
       <button
-        onClick={() => d.name.trim() && onSave({ name: d.name.trim(), icon: d.icon.trim() || '✨', parent: d.parent })}
+        onClick={() => d.name.trim() && onSave({ name: d.name.trim(), icon: d.icon.trim() || '✨', parent: d.parent, pinned: d.pinned })}
         className="pressable mt-2 w-full rounded-pill bg-primary px-4 py-2.5 text-sm text-bg"
       >
         保存
@@ -873,14 +879,14 @@ export function BookPage() {
     open(
       <Sheet title={editing ? '编辑分类' : '新增分类'} onClose={close}>
         <CategoryForm
-          initial={{ name: editing?.name ?? '', icon: editing?.icon ?? '✨', parent: editing?.parent ?? presetParent }}
+          initial={{ name: editing?.name ?? '', icon: editing?.icon ?? '✨', parent: editing?.parent ?? presetParent, pinned: editing?.pinned }}
           parents={topCats.map((c) => ({ name: c.name, icon: c.icon }))}
           onSave={async (d) => {
             if (editing) {
-              await updateCat(editing.id, { name: d.name, icon: d.icon || '✨', parent: d.parent || undefined })
+              await updateCat(editing.id, { name: d.name, icon: d.icon || '✨', parent: d.parent || undefined, pinned: d.pinned })
               showToast('已更新')
             } else {
-              await createCat({ name: d.name, icon: d.icon || '✨', defaultAccount: undefined, parent: d.parent || undefined })
+              await createCat({ name: d.name, icon: d.icon || '✨', defaultAccount: undefined, parent: d.parent || undefined, pinned: d.pinned })
               showToast('已添加')
             }
             close()

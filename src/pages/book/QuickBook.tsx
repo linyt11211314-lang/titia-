@@ -69,6 +69,11 @@ export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
     () => categories.filter((c) => !c.parent).sort((a, b) => a.order - b.order),
     [categories],
   )
+  // 钉选常用 = 用户在「分类管理」里钉选的分类（一级或二级均可），常驻显示在一级网格上方
+  const pinnedCats = useMemo(
+    () => categories.filter((c) => c.pinned).sort((a, b) => a.order - b.order),
+    [categories],
+  )
 
   const press = (k: string) => {
     setRaw((prev) => {
@@ -165,6 +170,27 @@ export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
       >
         清空
       </button>
+
+      {/* 钉选常用（一级 + 钉选二级）：在「分类管理」里钉选的分类，点一下即记账 */}
+      {pinnedCats.length > 0 && (
+        <>
+          <p className="text-xs font-medium text-ink-3">常用</p>
+          <div className="flex flex-wrap gap-2">
+            {pinnedCats.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                disabled={saving}
+                onClick={() => void doSave(c)}
+                className="pressable flex items-center gap-1 rounded-pill bg-primary/10 px-3 py-2 text-sm active:scale-95"
+              >
+                <span className="text-base leading-none">{c.icon === '·' || !c.icon ? '📌' : c.icon}</span>
+                <span className="text-ink">{c.name}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* 分类（方式一：点分类即记账，分类取自小账分类 store 实时同步） */}
       <p className="text-xs font-medium text-ink-3">点分类完成记账</p>

@@ -224,6 +224,8 @@ export interface CategoryEntity extends BaseEntity {
   parent?: string
   defaultAccount?: string
   order: number
+  /** 钉选为快记（QuickBook）常用分类，在一级网格上方常驻显示 */
+  pinned?: boolean
 }
 // 预算：绑定一级分类，按月统计该分类下所有二级支出
 export interface BudgetEntity extends BaseEntity {
