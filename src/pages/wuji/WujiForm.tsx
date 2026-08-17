@@ -185,8 +185,8 @@ export function WujiForm({ initial, onSubmit, submitLabel = '保存' }: WujiForm
               setPreviewIdx(null)
             }}
             aria-label="关闭预览"
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white ring-1 ring-white/30"
-            style={{ paddingTop: 'var(--safe-top)' }}
+            className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white ring-1 ring-white/30"
+            style={{ top: 'calc(var(--safe-top) + 16px)' }}
           >
             ✕
           </button>

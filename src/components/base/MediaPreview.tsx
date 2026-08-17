@@ -120,15 +120,16 @@ export function MediaPreview({
           {index + 1} / {ids.length} · 左右滑动切换
         </p>
       )}
-      {/* 右上角关闭按钮：实心半透深色圆底 + 白色叉，高对比度确保可发现 */}
+      {/* 右上角关闭按钮：实心半透深色圆底 + 白色叉，高对比度确保可发现
+          安全区通过 top 定位偏移，而不是按钮内 padding（padding 会把图标挤出圆框中心） */}
       <button
         onClick={(e) => {
           e.stopPropagation()
           onClose()
         }}
         aria-label="关闭预览"
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] ring-1 ring-white/30"
-        style={{ paddingTop: 'var(--safe-top)' }}
+        className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-[2px] ring-1 ring-white/30"
+        style={{ top: 'calc(var(--safe-top) + 16px)' }}
       >
         <CloseIcon width={22} height={22} />
       </button>
