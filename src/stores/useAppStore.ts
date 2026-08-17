@@ -19,26 +19,71 @@ interface AppState {
   bumpDataEpoch: () => void
 }
 
-// 初始深浅跟随系统（若不支持 matchMedia 则默认浅色）。
-// 这样 App 自身的深浅由 JS 驱动，applySkin 会同时刷新页面配色与状态栏，
-// 避免出现「系统压暗了页面、却没同步状态栏」的割裂白条。
+// 深浅模式持久化：用户手动选过 浅色/深色 后必须能跨刷新/重开 App 保留，
+// 否则每次进入都跟随系统偏好「变回浅色」（用户系统为浅色时尤为明显）。
+// 持久化键与皮肤快照('titia.theme')分离，独立保存 mode + themeAuto 两个标志。
+const MODE_KEY = 'titia:mode'
+const AUTO_KEY = 'titia:themeAuto'
+
 const prefersDark =
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-color-scheme: dark)').matches
 
+function readSavedMode(): 'light' | 'dark' | null {
+  try {
+    const v = localStorage.getItem(MODE_KEY)
+    if (v === 'light' || v === 'dark') return v
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+function readSavedAuto(): boolean | null {
+  try {
+    const v = localStorage.getItem(AUTO_KEY)
+    if (v === '0') return false
+    if (v === '1') return true
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+// 初始值恢复策略：
+//   - 用户曾手动选过（themeAuto=false 且存了 mode）→ 用保存的 mode；
+//   - 否则跟随系统（themeAuto=true，mode 取系统偏好）。
+// 这样「手动选择」可持久保留，「未手动选择」仍自动跟随系统深浅。
+const savedAuto = readSavedAuto()
+const themeAuto = savedAuto === null ? true : savedAuto
+const savedMode = readSavedMode()
+const mode = savedMode ?? (prefersDark ? 'dark' : 'light')
+
+function persistMode(m: 'light' | 'dark', auto: boolean) {
+  try {
+    localStorage.setItem(MODE_KEY, m)
+    localStorage.setItem(AUTO_KEY, auto ? '1' : '0')
+  } catch {
+    /* 隐私模式等写入失败时仅内存生效，不影响当前会话 */
+  }
+}
+
 export const useAppStore = create<AppState>((set) => ({
-  mode: prefersDark ? 'dark' : 'light',
-  themeAuto: true,
+  mode,
+  themeAuto,
   toast: null,
   dataEpoch: 0,
 
   setMode: (m) => {
     document.documentElement.setAttribute('data-mode', m)
+    persistMode(m, false)
     set({ mode: m, themeAuto: false })
   },
   setSystemMode: (m) => {
     document.documentElement.setAttribute('data-mode', m)
+    // 系统跟随期间也同步持久化 mode（themeAuto 不变，仍为 true），
+    // 保证「未手动选择」状态下系统深浅切换后也能正确恢复。
+    if (useAppStore.getState().themeAuto) persistMode(m, true)
     set({ mode: m })
   },
   showToast: (msg) => {
