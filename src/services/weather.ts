@@ -116,8 +116,7 @@ async function fetchDetail(location: string, name: string): Promise<WeatherDetai
   const uv = uvD?.daily?.[0] ?? {}
 
   const hourly: HourlyPoint[] = (hourlyD?.hourly ?? [])
-    .filter((_: any, i: number) => i % 3 === 0)
-    .slice(0, 8)
+    .slice(0, 24)
     .map((h: any) => ({
       time: (h.fxTime || '').slice(11, 16) || '--:--',
       temp: Math.round(Number(h.temp)),
