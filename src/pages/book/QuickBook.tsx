@@ -74,6 +74,14 @@ export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
     () => categories.filter((c) => c.pinned).sort((a, b) => a.order - b.order),
     [categories],
   )
+  // 二级下钻：点带子分类的一级分类 → 展开子分类选择；叶子类直接记账
+  const [subPick, setSubPick] = useState<CategoryEntity | null>(null)
+  const childrenOf = (parentName: string) =>
+    categories.filter((c) => c.parent === parentName).sort((a, b) => a.order - b.order)
+  const onPick = (c: CategoryEntity) => {
+    if (childrenOf(c.name).length > 0) setSubPick(c)
+    else void doSave(c)
+  }
 
   const press = (k: string) => {
     setRaw((prev) => {
@@ -172,7 +180,7 @@ export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
       </button>
 
       {/* 钉选常用（一级 + 钉选二级）：在「分类管理」里钉选的分类，点一下即记账 */}
-      {pinnedCats.length > 0 && (
+      {pinnedCats.length > 0 && !subPick && (
         <>
           <p className="text-xs font-medium text-ink-3">常用</p>
           <div className="flex flex-wrap gap-2">
@@ -192,25 +200,76 @@ export function QuickBook({ onAdvanced }: { onAdvanced: () => void }) {
         </>
       )}
 
-      {/* 分类（方式一：点分类即记账，分类取自小账分类 store 实时同步） */}
-      <p className="text-xs font-medium text-ink-3">点分类完成记账</p>
-      {quickCats.length === 0 ? (
-        <p className="text-xs text-ink-3">分类加载中…</p>
-      ) : (
-        <div className="grid grid-cols-4 gap-2">
-          {quickCats.map((c) => (
+      {/* 分类（方式一：点分类即记账；带二级的分类点一下展开二级选择） */}
+      {subPick ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
             <button
-              key={c.id}
               type="button"
-              disabled={saving}
-              onClick={() => void doSave(c)}
-              className="pressable flex flex-col items-center gap-1 rounded-card bg-surface px-1 py-3 active:scale-95"
+              onClick={() => setSubPick(null)}
+              className="pressable rounded-pill bg-surface-sunken px-3 py-1 text-xs text-ink-2 active:scale-95"
             >
-              <span className="text-2xl leading-none">{c.icon === '·' ? '📁' : c.icon}</span>
-              <span className="text-xs text-ink">{c.name}</span>
+              ‹ 返回
             </button>
-          ))}
+            <p className="text-xs font-medium text-ink-3">
+              选择「{subPick.icon === '·' ? '📁' : subPick.icon} {subPick.name}」的二级
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => {
+              setSubPick(null)
+              void doSave(subPick)
+            }}
+            className="pressable rounded-card bg-surface-sunken px-3 py-2.5 text-sm text-ink-2 active:scale-95"
+          >
+            记到「{subPick.name}」（不细分）
+          </button>
+          <div className="grid grid-cols-3 gap-2">
+            {childrenOf(subPick.name).map((child) => (
+              <button
+                key={child.id}
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  setSubPick(null)
+                  void doSave(child)
+                }}
+                className="pressable flex flex-col items-center gap-1 rounded-card bg-surface px-1 py-3 active:scale-95"
+              >
+                <span className="text-2xl leading-none">{child.icon === '·' ? '📁' : child.icon}</span>
+                <span className="text-xs text-ink">{child.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
+      ) : (
+        <>
+          <p className="text-xs font-medium text-ink-3">点分类完成记账</p>
+          {quickCats.length === 0 ? (
+            <p className="text-xs text-ink-3">分类加载中…</p>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {quickCats.map((c) => {
+                const hasChild = childrenOf(c.name).length > 0
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => onPick(c)}
+                    className="pressable relative flex flex-col items-center gap-1 rounded-card bg-surface px-1 py-3 active:scale-95"
+                  >
+                    <span className="text-2xl leading-none">{c.icon === '·' ? '📁' : c.icon}</span>
+                    <span className="text-xs text-ink">{c.name}</span>
+                    {hasChild && <span className="absolute right-1 top-1 text-[10px] text-ink-3">›</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* 自然语言（方式二：兜底） */}
