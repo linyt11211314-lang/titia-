@@ -451,7 +451,7 @@ function ItemCard({ item }: { item: WujiItemRow }) {
         <div className="mt-3">
           <div className="flex items-center justify-between text-xs text-ink-3">
             <span>已使用 {used} 天</span>
-            <span>日均 {formatYuan(daily)}</span>
+            <span>均摊每日 {formatYuan(daily)}</span>
           </div>
           <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-pill bg-surface-sunken">
             <div className="h-full rounded-pill bg-primary" style={{ width: `${prog}%` }} />
@@ -468,6 +468,9 @@ function ItemCard({ item }: { item: WujiItemRow }) {
             持有 {holdDays(item)} 天 · 卖出 {formatYuan(item.sellPrice ?? 0)}
           </p>
           <p className="mt-0.5">
+            均摊每日 {formatYuan(daily)}（买入价 ÷ 已用 {used} 天）
+          </p>
+          <p className="mt-0.5">
             {actualDailyCost(item) >= 0
               ? `持有期间每天实际花 ${formatYuan(actualDailyCost(item))}`
               : `持有期间每天净赚 ${formatYuan(-actualDailyCost(item))}`}
@@ -480,7 +483,9 @@ function ItemCard({ item }: { item: WujiItemRow }) {
       )}
 
       {item.status === 'idle' && (
-        <p className="mt-3 text-xs text-ink-3">闲置中，日均成本暂停计算。</p>
+        <p className="mt-3 text-xs text-ink-3">
+          闲置中 · 均摊每日 {formatYuan(daily)}（买入价 ÷ 已用 {used} 天）
+        </p>
       )}
     </div>
   )
