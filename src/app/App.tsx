@@ -256,9 +256,11 @@ export default function App() {
     // absolute 相对 #root 的亚像素下移缝隙，避免顶部透出底层内容）；
     // dev 用 absolute 以贴合预览手机框。
     <div
-      className={`${DEV ? 'absolute' : 'fixed'} inset-0 overflow-hidden bg-bg`}
+      className={`${DEV ? 'absolute' : 'fixed'} inset-0 overflow-hidden`}
     >
-      {/* 角色皮肤装饰层：置于所有内容之下，基础色皮肤下不渲染 */}
+      {/* 统一背景层：底色由 App 壳提供；页面根透明化以透出装饰层 */}
+      <div className="absolute inset-0 bg-bg" aria-hidden="true" />
+      {/* 角色皮肤装饰层：置于背景层之上、内容之下，基础色皮肤下不渲染 */}
       <SkinBackdrop />
 
       {/* 状态栏遮罩：铺满安全区顶部，用当前皮肤底色（--color-bg）。
@@ -272,7 +274,7 @@ export default function App() {
       {/* Level 0 · 五 Tab 根页（常驻保活，显隐切换，不卸载）。
           主 Tab 层左侧让出 68px 给固定侧边栏（SideNav）；模块页(Level1)全屏且本层隐藏。 */}
       <div
-        className={`absolute bottom-0 right-0 top-0 ${
+        className={`absolute bottom-0 right-0 top-0 z-10 ${
           isModule ? 'left-0 opacity-0' : 'left-[68px] opacity-100'
         }`}
       >

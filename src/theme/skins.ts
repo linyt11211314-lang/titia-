@@ -44,6 +44,10 @@ export interface Skin {
   motif?: MotifKind
   /** 一句话说明，主题中心展示 */
   note?: string
+  /** 内置皮肤版本号；代码里的 version 大于本地预设库时，自动覆盖本地副本，保证迭代更新生效 */
+  version?: number
+  /** 可选：覆盖该皮肤的形状（圆角/阴影）。不填则按 group 取默认 */
+  shape?: Shape
   light: Palette
   dark: Palette
 }
@@ -68,6 +72,17 @@ const SHARP_SHAPE: Shape = {
   'shadow-soft': '0 2px 8px rgba(20, 20, 30, 0.10)',
   'shadow-card': '0 4px 14px rgba(20, 20, 30, 0.16)',
   'shadow-pill': '0 6px 18px rgba(20, 20, 30, 0.20)',
+}
+
+/** 柠檬黄皮肤的「清新」形状：中等圆角（不过分可爱）+ 暖调轻阴影，现代不土 */
+const LEMON_SHAPE: Shape = {
+  'radius-card': '20px',
+  'radius-sheet': '24px',
+  'radius-btn': '14px',
+  'radius-img': '16px',
+  'shadow-soft': '0 6px 18px rgba(120, 100, 30, 0.08)',
+  'shadow-card': '0 12px 30px rgba(120, 100, 30, 0.12)',
+  'shadow-pill': '0 10px 26px rgba(120, 100, 30, 0.16)',
 }
 
 /** basic 皮肤的默认形状（与 index.css 初始值一致） */
@@ -147,6 +162,43 @@ export const SKINS: Skin[] = [
       highlight: '#f05fa0', 'highlight-soft': '#331e2a', ink: '#f2efe4', 'ink-2': '#a8a480', 'ink-3': '#747458', line: '#30322a',
     },
   },
+  {
+    id: 'cat',
+    name: '奶喵喵',
+    group: 'character',
+    motif: 'paw',
+    note: '薄荷绿 × 天空蓝 × 樱花粉 × 云朵白 · 软萌奶喵系（原创小猫主视觉）',
+    version: 2,
+    light: {
+      bg: '#F2FAF6', surface: '#FFFFFF', 'surface-sunken': '#E8F4EF',
+      primary: '#54B98A', 'primary-soft': '#DCF3EA', accent: '#5BA8E0', 'accent-soft': '#E3F1FB',
+      highlight: '#FF8FB3', 'highlight-soft': '#FDE3EE', ink: '#28403A', 'ink-2': '#5E6F68', 'ink-3': '#8A9A93', line: '#E0EFE8',
+    },
+    dark: {
+      bg: '#16201C', surface: '#1F2A25', 'surface-sunken': '#121A16',
+      primary: '#6FCF9F', 'primary-soft': '#1E3329', accent: '#6FB6E8', 'accent-soft': '#192A38',
+      highlight: '#FF9BC4', 'highlight-soft': '#33222E', ink: '#EDF5F0', 'ink-2': '#AEC2B8', 'ink-3': '#7E9388', line: '#26332C',
+    },
+  },
+  {
+    id: 'lemon',
+    name: '柠檬黄',
+    group: 'character',
+    motif: 'spark',
+    note: '明亮柠檬黄 × 抽象星芒光点 · 大面积柠檬黄主题（无水果形象）',
+    version: 2,
+    shape: LEMON_SHAPE,
+    light: {
+      bg: '#FFF6C8', surface: '#FFFDF6', 'surface-sunken': '#FFEF9E',
+      primary: '#E6B400', 'primary-soft': '#FFF3B0', accent: '#74C69D', 'accent-soft': '#E6F4EC',
+      highlight: '#FFD400', 'highlight-soft': '#FFF6CC', ink: '#3A3410', 'ink-2': '#6E6530', 'ink-3': '#9A8F50', line: '#F0E2A0',
+    },
+    dark: {
+      bg: '#1A1606', surface: '#26210E', 'surface-sunken': '#13110A',
+      primary: '#F2C200', 'primary-soft': '#332C0E', accent: '#74C69D', 'accent-soft': '#16291F',
+      highlight: '#FFD400', 'highlight-soft': '#332C0E', ink: '#FAF3D6', 'ink-2': '#C9BD8C', 'ink-3': '#8E8260', line: '#322C16',
+    },
+  },
 ]
 
 const TOKENS: (keyof Palette)[] = [
@@ -196,11 +248,19 @@ export function applySkin(skinId: string, mode: 'light' | 'dark') {
 export function applySkinTo(skin: Skin, mode: 'light' | 'dark') {
   const p = mode === 'dark' ? skin.dark : skin.light
   const shape =
-    skin.group === 'character' ? SOFT_SHAPE : skin.group === 'clash' ? SHARP_SHAPE : BASE_SHAPE
+    skin.shape ??
+    (skin.group === 'character' ? SOFT_SHAPE : skin.group === 'clash' ? SHARP_SHAPE : BASE_SHAPE)
   const root = document.documentElement
 
   for (const t of TOKENS) root.style.setProperty(`--color-${t}`, p[t])
   for (const t of SHAPE_TOKENS) root.style.setProperty(`--${t}`, shape[t])
+
+  // 所见即所得：主色/强调/高亮按钮的文字色，按各自底色亮度自动选黑或白，保证可读
+  // （自定义皮肤现在直接用用户原色，亮底必须配深色字才不会糊；内置皮肤也一并受益）
+  const pickOn = (hex: string) => (hexToHsl(hex).l > 0.62 ? '#1a1a1a' : '#ffffff')
+  root.style.setProperty('--on-primary', pickOn(p.primary))
+  root.style.setProperty('--on-accent', pickOn(p.accent))
+  root.style.setProperty('--on-highlight', pickOn(p.highlight))
 
   root.setAttribute('data-theme', skin.id)
   root.setAttribute('data-mode', mode)
@@ -403,37 +463,39 @@ export function buildCustomSkin(
   const b = hexToHsl(bHex)
   const a = hexToHsl(aHex)
 
-  // 浅色：primary/accent 压深保证白字可读；highlight 保留鲜艳原色
+  // 所见即所得：主色/强调直接用用户原色（不再压暗/冲淡）；背景直接用用户背景锚点；
+  // 文字色（ink / 按钮 on-*）随底色亮度自动黑白，由 applySkinTo 写入 --on-* 保证可读。
+  const isLightBg = b.l > 0.55
   const light: Palette = {
-    bg: c(b.h, Math.max(b.s, 0.18), 0.975),
-    surface: '#ffffff',
-    'surface-sunken': c(b.h, Math.max(b.s, 0.16), 0.93),
-    primary: c(p.h, Math.max(p.s, 0.55), Math.min(p.l, 0.45)),
-    'primary-soft': c(p.h, 0.6, 0.92),
-    accent: c(a.h, Math.max(a.s, 0.45), Math.min(a.l, 0.42)),
-    'accent-soft': c(a.h, 0.45, 0.92),
-    highlight: c(p.h, Math.max(p.s, 0.7), Math.max(p.l, 0.56)),
-    'highlight-soft': c(p.h, Math.max(p.s, 0.7), 0.93),
-    ink: c(b.h, 0.12, 0.12),
-    'ink-2': c(b.h, 0.1, 0.42),
-    'ink-3': c(b.h, 0.08, 0.62),
-    line: c(b.h, 0.18, 0.88),
+    bg: bHex,
+    surface: c(b.h, Math.max(b.s, 0.05), Math.min(b.l + 0.05, 0.985)),
+    'surface-sunken': c(b.h, Math.max(b.s, 0.05), Math.max(b.l - 0.03, 0.04)),
+    primary: pHex,
+    'primary-soft': c(p.h, Math.max(p.s, 0.5), Math.min(Math.max(p.l + 0.3, 0.9), 0.97)),
+    accent: aHex,
+    'accent-soft': c(a.h, Math.max(a.s, 0.45), Math.min(Math.max(a.l + 0.3, 0.9), 0.97)),
+    highlight: c(p.h, Math.max(p.s, 0.7), Math.min(Math.max(p.l + 0.12, 0.56), 0.74)),
+    'highlight-soft': c(p.h, Math.max(p.s, 0.6), 0.9),
+    ink: c(b.h, 0.1, isLightBg ? 0.14 : 0.92),
+    'ink-2': c(b.h, 0.08, isLightBg ? 0.42 : 0.7),
+    'ink-3': c(b.h, 0.06, isLightBg ? 0.62 : 0.5),
+    line: c(b.h, 0.15, isLightBg ? 0.86 : 0.28),
   }
-  // 深色：主色用鲜艳原色（深色底 + 深色文字清晰）；其余压暗
+  // 深色：主色/强调直接用用户原色（on-* 自动保证按钮文字可读）；背景按用户色相压深成深色底
   const dark: Palette = {
-    bg: c(b.h, 0.16, 0.09),
+    bg: c(b.h, 0.18, 0.09),
     surface: c(b.h, 0.15, 0.14),
     'surface-sunken': c(b.h, 0.2, 0.07),
-    primary: c(p.h, Math.max(p.s, 0.7), Math.max(p.l, 0.58)),
-    'primary-soft': c(p.h, 0.5, 0.22),
-    accent: c(a.h, Math.max(a.s, 0.5), 0.6),
+    primary: pHex,
+    'primary-soft': c(p.h, 0.45, 0.22),
+    accent: aHex,
     'accent-soft': c(a.h, 0.4, 0.2),
     highlight: c(p.h, Math.max(p.s, 0.8), Math.max(p.l, 0.62)),
     'highlight-soft': c(p.h, Math.max(p.s, 0.6), 0.24),
     ink: c(b.h, 0.1, 0.95),
-    'ink-2': c(b.h, 0.08, 0.68),
-    'ink-3': c(b.h, 0.06, 0.48),
-    line: c(b.h, 0.14, 0.24),
+    'ink-2': c(b.h, 0.08, 0.7),
+    'ink-3': c(b.h, 0.06, 0.5),
+    line: c(b.h, 0.14, 0.26),
   }
   return {
     id: id ?? `custom-${Date.now()}-${Math.floor(Math.random() * 1e4)}`,

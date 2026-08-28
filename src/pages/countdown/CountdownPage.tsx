@@ -594,7 +594,7 @@ export function CountdownPage({ embedded = false }: { embedded?: boolean }) {
 
   // 独立页面（底部 tab）：固定头部 + 独立滚动列表（彻底解决漏底/割裂/遮挡）
   return (
-    <div className="flex h-full flex-col bg-bg">
+    <div className="flex h-full flex-col">
       <header className="flex-none bg-bg px-4 pb-4" style={{ paddingTop: 'calc(var(--safe-top) + 8px)' }}>
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-ink">倒数日</h1>
@@ -604,7 +604,7 @@ export function CountdownPage({ embedded = false }: { embedded?: boolean }) {
         </div>
         {countdownTabs}
       </header>
-      <PullToRefresh onRefresh={reloadAll} className="bg-bg px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-2">
+      <PullToRefresh onRefresh={reloadAll} className="px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-2">
         {content}
       </PullToRefresh>
     </div>

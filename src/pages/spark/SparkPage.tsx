@@ -114,7 +114,7 @@ export function SparkPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-bg">
+    <div className="flex h-full flex-col">
       {/* 固定头部：全宽铺满、无卡片/边框/阴影，不随列表滚动（彻底解决漏底/割裂/遮挡） */}
       <header className="flex-none bg-bg" style={{ paddingTop: 'calc(var(--safe-top) + 8px)' }}>
         {/* 标题行（含返回，替代原 NavBar；底色同页，无分隔线） */}
@@ -186,7 +186,7 @@ export function SparkPage() {
       </header>
 
       {/* 列表区：独立滚动容器，overflow 裁剪，内容永不越过头部下边缘（物理斩断漏底） */}
-      <PullToRefresh onRefresh={reloadAll} className="bg-bg px-5 pt-2 pb-[calc(var(--safe-top)+16px)]">
+      <PullToRefresh onRefresh={reloadAll} className="px-5 pt-2 pb-[calc(var(--safe-top)+16px)]">
         {items.length === 0 ? (
           <EmptyState
             text="还没有灵光"

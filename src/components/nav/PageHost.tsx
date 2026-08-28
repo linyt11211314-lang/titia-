@@ -25,7 +25,7 @@ interface PageHostProps {
 // 此处不再重复叠加 safe-top，否则 NavBar+PageHost 页面会出现双倍安全区的大块留白。
 // 仅当页面没有 NavBar 时（如 RecordPage），由调用方通过 contentClassName 自行补回 safe-top。
 const DEFAULT_CONTENT =
-  'flex-1 overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y bg-bg px-5 pb-28 pt-4'
+  'flex-1 overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y px-5 pb-28 pt-4'
 
 export function PageHost({ children, className = '', contentClassName = DEFAULT_CONTENT, onRefresh }: PageHostProps) {
   // 默认走 DEFAULT_CONTENT 的页面：滚动容器由 PullToRefresh 内部接管（含下拉刷新）

@@ -74,7 +74,7 @@ export function SpacePage() {
         <PullToRefresh
           scrollRef={rightRef}
           onRefresh={reloadAll}
-          className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden touch-pan-y bg-bg px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-0"
+          className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden touch-pan-y px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-0"
         >
           <div key={active} className="fade-up">
             {active === 'home' && <SpaceHome onNavigate={setActive} />}

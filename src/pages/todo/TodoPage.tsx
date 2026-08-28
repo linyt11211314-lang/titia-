@@ -153,7 +153,7 @@ export function TodoPage() {
                         }}
                         aria-label="标记完成"
                       >
-                        {t.done && <span className="text-xs text-bg">✓</span>}
+                        {t.done && <span className="text-xs text-on-primary">✓</span>}
                       </button>
                       <div className="min-w-0 flex-1">
                         <p className={`truncate ${due ? 'font-medium text-ink' : 'text-ink'}`}>{t.title}</p>
@@ -200,7 +200,7 @@ export function TodoPage() {
                       style={{ borderColor: 'var(--color-primary)', background: 'var(--color-primary)' }}
                       aria-label="标记未完成"
                     >
-                      <span className="text-xs text-bg">✓</span>
+                      <span className="text-xs text-on-primary">✓</span>
                     </button>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-ink-3 line-through">{t.title}</p>

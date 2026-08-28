@@ -118,7 +118,7 @@ export function WujiPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-bg">
+    <div className="flex h-full flex-col">
       {/* 固定标题栏（与 Aura 主页同模式） */}
       <div className="flex shrink-0 items-center justify-between px-5 pb-2 pt-[calc(var(--safe-top)+12px)]">
         <h1 className="text-xl font-semibold text-ink">物集</h1>

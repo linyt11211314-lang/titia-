@@ -106,7 +106,7 @@ export function AuraPage() {
   const skinLabel = AURA_SKIN_TYPES.find((o) => o.key === skinType)?.label ?? ''
 
   return (
-    <div className="flex h-full flex-col bg-bg">
+    <div className="flex h-full flex-col">
       {/* 顶部标题：固定不滚动（与 HomePage 顶部 banner 模式一致） */}
       <div className="shrink-0 px-5 pb-3 pt-[calc(var(--safe-top)+12px)]">
         <h1 className="text-2xl font-semibold text-ink">
@@ -120,7 +120,7 @@ export function AuraPage() {
         <PullToRefresh
           scrollRef={scrollRef}
           onRefresh={reloadAll}
-          className="h-full overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y bg-bg px-5 pb-28 pt-2"
+          className="h-full overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y px-5 pb-28 pt-2"
         >
 
           {/* 区块 A · 当前皮肤症状 */}

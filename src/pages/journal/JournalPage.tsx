@@ -67,7 +67,7 @@ export function JournalPage() {
         <PullToRefresh
           scrollRef={rightRef}
           onRefresh={reloadAll}
-          className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden touch-pan-y bg-bg px-4 pb-[calc(7rem+env(safe-area-inset-bottom))]"
+          className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden touch-pan-y px-4 pb-[calc(7rem+env(safe-area-inset-bottom))]"
         >
           <div key={sub} className="fade-up">
             {sub === 'diary' ? (

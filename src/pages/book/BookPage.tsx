@@ -1279,7 +1279,7 @@ export function BookPage() {
         </div>
 
         {/* 内容区（全宽，独立滚动，含下拉刷新；不透明背景避免滚动透出） */}
-        <PullToRefresh scrollRef={rightRef} onRefresh={reloadAll} className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden touch-pan-y bg-bg px-4 pb-28 pt-0">
+        <PullToRefresh scrollRef={rightRef} onRefresh={reloadAll} className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden touch-pan-y px-4 pb-28 pt-0">
           <div key={view} className="fade-up">
             {/* ═══ 首页（财富概览 / 本月收支 / 预算进度） ═══ */}
             {view === 'home' && (

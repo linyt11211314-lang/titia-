@@ -95,7 +95,7 @@ export function MinePage() {
       </div>
 
       {/* Scroll Container：设置内容可上下滚动（禁止横向）；不透明背景避免滚动透出 */}
-      <PullToRefresh onRefresh={reloadAll} className="bg-bg px-5 pb-28">
+      <PullToRefresh onRefresh={reloadAll} className="px-5 pb-28">
         <div className="mb-1 pt-1">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-3">设置</h2>
         </div>

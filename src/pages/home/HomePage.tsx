@@ -14,6 +14,7 @@ import { useTodoStore, isTodoDue } from '../../stores/useTodoStore'
 import { useShoppingStore } from '../../stores/useShoppingStore'
 import { useBookStore } from '../../stores/useBookStore'
 import { useAppStore } from '../../stores/useAppStore'
+import { useSettingsStore } from '../../stores/useSettingsStore'
 import { navigate } from '../../app/useHashRoute'
 import { getWeatherDetail, type WeatherDetail } from '../../services/weather'
 import { WeatherSheet } from '../../components/weather/WeatherSheet'
@@ -96,6 +97,7 @@ export function HomePage() {
   const { items: shopItems, loaded: shopLoaded, load: shopLoad, toggle: shopToggle } = useShoppingStore()
   const { transactions, loaded: bookLoaded, load: loadBook } = useBookStore()
   const showToast = useAppStore((s) => s.showToast)
+  const skin = useSettingsStore((s) => s.skin)
   const open = useOverlayStore((s) => s.open)
   const close = useOverlayStore((s) => s.close)
   const [weather, setWeather] = useState<WeatherDetail | null>(null)
@@ -181,13 +183,13 @@ export function HomePage() {
     <div className="flex h-full flex-col">
       {/* Banner（固定不滚动；顶部安全区由全局遮罩兜底，标签在左上角） */}
       <div className="shrink-0 px-5 pb-3 pt-[calc(var(--safe-top)+12px)]">
-        {/* Dashboard：我的生活正在发生什么 */}
-        <div className="relative overflow-hidden flex items-start justify-between rounded-card bg-surface p-5 shadow-card">
+        {/* 今日 Banner：统一信息卡，不占用插画位置；主题元素由卡片肌理(skin-card) + 全局飘浮层体现 */}
+        <div className="relative overflow-hidden flex items-start justify-between rounded-card bg-surface p-5 shadow-card skin-card">
           <MotifCorner size={88} opacity={0.1} />
           <div className="relative">
             <p className="text-xs text-ink-3">Titia 时序</p>
             <h1 className="mt-0.5 text-2xl font-semibold text-ink">{GREET()}</h1>
-            {/* 世界时钟：伦敦 / 迪拜 实时时间（替换原静态文案），放在 Banner 左下角，避免遮挡右侧天气 */}
+            {/* 世界时钟：伦敦 / 迪拜 实时时间 */}
             <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] leading-tight text-ink-2">
               <TimeDisplay label="伦敦" timeZone="Europe/London" />
               <TimeDisplay label="迪拜" timeZone="Asia/Dubai" />
@@ -201,13 +203,13 @@ export function HomePage() {
       <div className="min-h-0 flex-1">
       <PullToRefresh
         onRefresh={reloadAll}
-        className="flex h-full flex-col overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y bg-bg px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-2"
+        className="flex h-full flex-col overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-2"
       >
       {/* 打卡面板 + 消费卡片（banner 下方、待办上方；消费真实同步账单今日/本月花销） */}
       <section className="mb-5 fade-up">
         <div className="grid grid-cols-2 gap-2">
           {/* 已使用：2026.8.3 至今过去多少天 */}
-          <div className="flex flex-col justify-between rounded-card bg-surface p-4 shadow-soft">
+          <div className="flex flex-col justify-between rounded-card bg-surface p-4 shadow-soft skin-card">
             <p className="text-xs text-ink-3">📅 已使用</p>
             <p className="mt-2 text-3xl font-bold leading-none text-ink">
               {checkin.usage}
@@ -217,7 +219,7 @@ export function HomePage() {
           </div>
           {/* 连续打卡：手动打卡按钮（每日 0 点恢复可打卡） */}
           <div
-            className={`flex flex-col justify-between rounded-card p-4 shadow-soft ${
+            className={`flex flex-col justify-between rounded-card p-4 shadow-soft skin-card ${
               checkin.checkedToday ? 'bg-primary-soft' : 'bg-surface'
             }`}
           >
@@ -246,11 +248,11 @@ export function HomePage() {
             <p className="mt-1.5 text-[11px] text-ink-3">真棒！今天又来看我啦～</p>
           </div>
           {/* 今日消费 / 本月消费（真实同步账单） */}
-          <div className="rounded-card bg-surface p-4 shadow-soft">
+          <div className="rounded-card bg-surface p-4 shadow-soft skin-card">
             <p className="text-xs text-ink-3">💰 今日消费</p>
             <p className="mt-2 text-xl font-bold text-ink">¥{(todayExpense / 100).toFixed(2)}</p>
           </div>
-          <div className="rounded-card bg-surface p-4 shadow-soft">
+          <div className="rounded-card bg-surface p-4 shadow-soft skin-card">
             <p className="text-xs text-ink-3">📊 本月消费</p>
             <p className="mt-2 text-xl font-bold text-ink">¥{(monthExpense / 100).toFixed(2)}</p>
           </div>

@@ -3,7 +3,7 @@
 // 角色皮肤只借配色与「气质」，图形一律自绘的通用符号，规避版权问题。
 // 统一 24×24 viewBox，用 currentColor 填充，方便随 token 变色。
 
-export type MotifKind = 'cloud' | 'star' | 'flower' | 'paw' | 'bow'
+export type MotifKind = 'cloud' | 'star' | 'flower' | 'paw' | 'bow' | 'spark'
 
 /** 每种 motif 的路径（可能多段，构成完整图形） */
 const PATHS: Record<MotifKind, string[]> = {
@@ -32,6 +32,11 @@ const PATHS: Record<MotifKind, string[]> = {
     'M10.4 12L3.6 7.4c-.7-.5-1.6 0-1.6.9v7.4c0 .9.9 1.4 1.6.9z',
     'M13.6 12l6.8 4.6c.7.5 1.6 0 1.6-.9V8.3c0-.9-.9-1.4-1.6-.9z',
     'M12 9.6a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z',
+  ],
+  // spark：四角星芒（阳光闪烁感）+ 一颗小光点，抽象、无具象形象
+  spark: [
+    'M12 2.6c.55 3.7 2.7 5.85 6.4 6.4-3.7.55-5.85 2.7-6.4 6.4-.55-3.7-2.7-5.85-6.4-6.4 3.7-.55 5.85-2.7 6.4-6.4z',
+    'M18.2 17.4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z',
   ],
 }
 

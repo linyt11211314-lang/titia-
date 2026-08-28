@@ -50,7 +50,7 @@ export function AuraResultPage() {
 
   if (!result) {
     return (
-      <div className="flex h-full flex-col bg-bg">
+      <div className="flex h-full flex-col">
         <div className="flex shrink-0 items-center px-5 pb-2 pt-[calc(var(--safe-top)+12px)]">
           <button
             type="button"
@@ -90,7 +90,7 @@ export function AuraResultPage() {
   const ageLabel = AURA_AGE_GROUPS.find((o) => o.key === ageGroup)?.label ?? ageGroup ?? '未填'
 
   return (
-    <div className="flex h-full flex-col bg-bg">
+    <div className="flex h-full flex-col">
       {/* 固定标题栏：与 Aura 主页同模式，紧贴状态栏、无 NavBar 额外高度 */}
       <div className="flex shrink-0 items-center px-5 pb-2 pt-[calc(var(--safe-top)+12px)]">
         <button
@@ -106,7 +106,7 @@ export function AuraResultPage() {
 
       {/* 独立滚动内容区：与 Aura 主页同模式，紧凑起始、顶部无双重空白 */}
       <div className="min-h-0 flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y bg-bg px-5 pb-28">
+        <div className="h-full overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y px-5 pb-28">
           {/* 顶部：皮肤画像 hero 卡 */}
           <section className="mb-4 rounded-card bg-surface p-5 shadow-card">
             <div className="flex items-center justify-between">

@@ -332,7 +332,7 @@ export function DiaryPage({ embedded = false, registerAdd }: { embedded?: boolea
 
   // 独立页面（底部 tab）：固定头部 + 独立滚动列表（彻底解决漏底/割裂/遮挡）
   return (
-    <div className="flex h-full flex-col bg-bg">
+    <div className="flex h-full flex-col">
       <header className="flex-none bg-bg px-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top) + 8px)' }}>
         {month === null ? (
           <h1 className="text-xl font-semibold text-ink">日记</h1>
@@ -340,7 +340,7 @@ export function DiaryPage({ embedded = false, registerAdd }: { embedded?: boolea
           subHeader
         )}
       </header>
-      <PullToRefresh onRefresh={reloadAll} className="bg-bg px-4 pb-[calc(var(--safe-top)+16px)] pt-2">
+      <PullToRefresh onRefresh={reloadAll} className="px-4 pb-[calc(var(--safe-top)+16px)] pt-2">
         {content}
       </PullToRefresh>
     </div>
