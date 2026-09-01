@@ -48,8 +48,18 @@ export interface Skin {
   version?: number
   /** 可选：覆盖该皮肤的形状（圆角/阴影）。不填则按 group 取默认 */
   shape?: Shape
+  /** 卡片级配色覆盖（皮肤中心「自定义卡片颜色」）：只影响卡片背景/描边/文字，
+   *  不改变全局 bg/ink 等语义。未设置的项回退当前皮肤的 surface / 透明 / 自动黑白。 */
+  card?: { light?: CardTokens; dark?: CardTokens }
   light: Palette
   dark: Palette
+}
+
+/** 卡片配色覆盖 token：bg 必填（跟随主题时也需显式给 surface），border/text 可选。 */
+export interface CardTokens {
+  bg: string
+  border?: string
+  text?: string
 }
 
 /** 角色皮肤统一的「软萌」形状：圆角更大、阴影更散更淡 */
@@ -262,6 +272,14 @@ export function applySkinTo(skin: Skin, mode: 'light' | 'dark') {
   root.style.setProperty('--on-accent', pickOn(p.accent))
   root.style.setProperty('--on-highlight', pickOn(p.highlight))
 
+  // 卡片级配色覆盖（皮肤中心「自定义卡片颜色」）：
+  // 背景默认回退 surface；描边默认透明（不显示）；文字默认按卡片背景亮度自动黑白保证可读。
+  const cardTok = skin.card?.[mode === 'dark' ? 'dark' : 'light'] ?? skin.card?.light
+  const cardBg = cardTok?.bg ?? p.surface
+  root.style.setProperty('--card-bg', cardBg)
+  root.style.setProperty('--card-border', cardTok?.border ?? 'transparent')
+  root.style.setProperty('--card-text', cardTok?.text ?? pickOn(cardBg))
+
   root.setAttribute('data-theme', skin.id)
   root.setAttribute('data-mode', mode)
   // 供 CSS / 测试判断当前是否角色皮肤
@@ -428,12 +446,14 @@ function hslToHex(h: number, s: number, l: number): string {
 /** 给一个色相/饱和度/亮度生成十六进制（便捷封装） */
 const c = (h: number, s: number, l: number) => hslToHex(h, s, l)
 
-/** 自定义主题输入：主色 / 背景 / 强调 三个锚点，均可独立指定。
+/** 自定义主题输入：主色 / 背景 / 强调 三个锚点 + 可选卡片配色覆盖，均可独立指定。
  *  任一未指定时回退到主色，保证单色创建仍可用、且向后兼容旧调用。 */
 export interface CustomThemeInput {
   primary?: string // 主色锚点（按钮 / 高亮点缀）
   bg?: string // 背景锚点（页面底色 / 文字色基调）
   accent?: string // 强调色锚点（accent）
+  /** 卡片级配色覆盖（浅/深同套；迭代 1 暂不单独维护深色卡片配色） */
+  card?: CardTokens
 }
 
 /** 规范化 hex（支持 3/6 位），非法返回回退色 */
@@ -503,5 +523,6 @@ export function buildCustomSkin(
     group: 'custom',
     light,
     dark,
+    ...(raw.card ? { card: { light: raw.card, dark: raw.card } } : {}),
   }
 }

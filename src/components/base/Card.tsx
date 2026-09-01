@@ -69,6 +69,12 @@ export function Card({
       className={`relative skin-card rounded-card ${tint || 'bg-surface'} shadow-card ${
         motif ? 'overflow-hidden' : ''
       } ${onPress ? 'pressable cursor-pointer' : ''} ${className}`}
+      style={{
+        // 卡片级配色覆盖：背景默认回退 surface（tint 卡保持原 soft 底），描边默认透明，文字自动黑白
+        background: tint ? undefined : 'var(--card-bg)',
+        outline: '1px solid var(--card-border)',
+        color: 'var(--card-text)',
+      }}
     >
       {/* 角色皮肤：极淡主题肌理（按 motif），位于卡片背景之上、内容之下 */}
       {tex && (

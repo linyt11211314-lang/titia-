@@ -184,7 +184,7 @@ export function HomePage() {
       {/* Banner（固定不滚动；顶部安全区由全局遮罩兜底，标签在左上角） */}
       <div className="shrink-0 px-5 pb-3 pt-[calc(var(--safe-top)+12px)]">
         {/* 今日 Banner：统一信息卡，不占用插画位置；主题元素由卡片肌理(skin-card) + 全局飘浮层体现 */}
-        <div className="relative overflow-hidden flex items-start justify-between rounded-card bg-surface p-5 shadow-card skin-card">
+        <div className="relative overflow-hidden flex items-start justify-between rounded-card bg-surface p-5 shadow-card skin-card" style={{ background: 'var(--card-bg)' }}>
           <MotifCorner size={88} opacity={0.1} />
           <div className="relative">
             <p className="text-xs text-ink-3">Titia 时序</p>
@@ -209,7 +209,7 @@ export function HomePage() {
       <section className="mb-5 fade-up">
         <div className="grid grid-cols-2 gap-2">
           {/* 已使用：2026.8.3 至今过去多少天 */}
-          <div className="flex flex-col justify-between rounded-card bg-surface p-4 shadow-soft skin-card">
+          <div className="flex flex-col justify-between rounded-card bg-surface p-4 shadow-soft skin-card" style={{ background: 'var(--card-bg)' }}>
             <p className="text-xs text-ink-3">📅 已使用</p>
             <p className="mt-2 text-3xl font-bold leading-none text-ink">
               {checkin.usage}
@@ -222,6 +222,7 @@ export function HomePage() {
             className={`flex flex-col justify-between rounded-card p-4 shadow-soft skin-card ${
               checkin.checkedToday ? 'bg-primary-soft' : 'bg-surface'
             }`}
+            style={{ background: checkin.checkedToday ? undefined : 'var(--card-bg)' }}
           >
             <p className="text-xs text-ink-3">🔥 连续打卡</p>
             <p className="mt-2 text-3xl font-bold leading-none text-ink">
@@ -248,11 +249,11 @@ export function HomePage() {
             <p className="mt-1.5 text-[11px] text-ink-3">真棒！今天又来看我啦～</p>
           </div>
           {/* 今日消费 / 本月消费（真实同步账单） */}
-          <div className="rounded-card bg-surface p-4 shadow-soft skin-card">
+          <div className="rounded-card bg-surface p-4 shadow-soft skin-card" style={{ background: 'var(--card-bg)' }}>
             <p className="text-xs text-ink-3">💰 今日消费</p>
             <p className="mt-2 text-xl font-bold text-ink">¥{(todayExpense / 100).toFixed(2)}</p>
           </div>
-          <div className="rounded-card bg-surface p-4 shadow-soft skin-card">
+          <div className="rounded-card bg-surface p-4 shadow-soft skin-card" style={{ background: 'var(--card-bg)' }}>
             <p className="text-xs text-ink-3">📊 本月消费</p>
             <p className="mt-2 text-xl font-bold text-ink">¥{(monthExpense / 100).toFixed(2)}</p>
           </div>
@@ -290,7 +291,7 @@ export function HomePage() {
           </button>
         </div>
         {activeTodos.length === 0 ? (
-          <div className="rounded-card bg-surface p-4 text-center shadow-soft">
+          <div className="rounded-card bg-surface p-4 text-center shadow-soft" style={{ background: 'var(--card-bg)' }}>
             <p className="text-sm text-ink-2">今天没有待办，享受当下</p>
           </div>
         ) : (
@@ -323,7 +324,7 @@ export function HomePage() {
           </button>
         </div>
         {unbought.length === 0 ? (
-          <p className="rounded-card bg-surface p-4 text-sm text-ink-3 shadow-card">都买好啦 🎉</p>
+          <p className="rounded-card bg-surface p-4 text-sm text-ink-3 shadow-card" style={{ background: 'var(--card-bg)' }}>都买好啦 🎉</p>
         ) : (
           <div className="flex flex-col gap-2">
             {unbought.map((i) => (
@@ -333,7 +334,7 @@ export function HomePage() {
                   shopToggle(i.id, true)
                   showToast(`已买：${i.name}`)
                 }}
-                className="pressable flex items-center gap-3 rounded-card bg-surface p-4 shadow-card"
+                className="pressable flex items-center gap-3 rounded-card bg-surface p-4 shadow-card" style={{ background: 'var(--card-bg)' }}
               >
                 <span className="h-5 w-5 flex-shrink-0 rounded-pill border-2 border-line" />
                 <span className="flex-1 text-ink">{i.name}</span>

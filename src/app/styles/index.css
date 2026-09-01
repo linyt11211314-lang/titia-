@@ -43,6 +43,12 @@
   --on-primary: #ffffff;
   --on-accent: #ffffff;
   --on-highlight: #ffffff;
+
+  /* 卡片级配色（皮肤中心「自定义卡片颜色」）：默认跟随主题 surface / 无描边 / 自动黑白文字，
+     运行时由 applySkin 按当前皮肤与用户覆盖注入。Card 组件与带 skin-card 的卡片读取。 */
+  --card-bg: #ffffff;
+  --card-border: transparent;
+  --card-text: #1a1614;
 }
 
 /* 深色 */

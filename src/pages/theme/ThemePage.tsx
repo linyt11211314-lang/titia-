@@ -41,13 +41,23 @@ export function ThemePage() {
     primary: string
     bg: string
     accent: string
+    cardBg: string // '' = 跟随主题（不覆盖卡片背景）
+    cardBorder: string // '' = 无描边
   }>({
     name: '',
     primary: SWATCH_GROUPS[0].colors[0].hex,
     bg: SWATCH_GROUPS[0].colors[0].hex,
     accent: SWATCH_GROUPS[0].colors[0].hex,
+    cardBg: '',
+    cardBorder: '',
   })
   const savedSkinRef = useRef(skin)
+
+  // 卡片配色输入：cardBg 为空 = 整组跟随主题（不覆盖）；否则带 bg + 可选 border
+  const cardInput = () =>
+    draft.cardBg
+      ? { bg: draft.cardBg, ...(draft.cardBorder ? { border: draft.cardBorder } : {}) }
+      : undefined
 
   useEffect(() => {
     refresh()
@@ -62,11 +72,12 @@ export function ThemePage() {
         primary: draft.primary,
         bg: draft.bg,
         accent: draft.accent,
+        card: cardInput(),
       }),
       mode,
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [creating, draft.primary, draft.bg, draft.accent, mode])
+  }, [creating, draft.primary, draft.bg, draft.accent, draft.cardBg, draft.cardBorder, mode])
 
   const enterCreate = () => {
     savedSkinRef.current = skin
@@ -75,12 +86,14 @@ export function ThemePage() {
       primary: SWATCH_GROUPS[0].colors[0].hex,
       bg: SWATCH_GROUPS[0].colors[0].hex,
       accent: SWATCH_GROUPS[0].colors[0].hex,
+      cardBg: '',
+      cardBorder: '',
     })
     setCreating(true)
   }
-  const setColor = (which: 'primary' | 'bg' | 'accent', hex: string) =>
+  const setColor = (which: 'primary' | 'bg' | 'accent' | 'cardBg' | 'cardBorder', hex: string) =>
     setDraft((d) => ({ ...d, [which]: hex }))
-  const onHexText = (which: 'primary' | 'bg' | 'accent', v: string) => {
+  const onHexText = (which: 'primary' | 'bg' | 'accent' | 'cardBg' | 'cardBorder', v: string) => {
     const norm = v.trim()
     if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(norm)) {
       const hex = norm.length === 4 ? '#' + norm.slice(1).split('').map((c) => c + c).join('') : norm
@@ -99,6 +112,7 @@ export function ThemePage() {
       primary: draft.primary,
       bg: draft.bg,
       accent: draft.accent,
+      card: cardInput(),
     })
     await saveCustomSkin(s)
     setCreating(false)
@@ -112,7 +126,7 @@ export function ThemePage() {
     if (!id) return
     const derived = buildCustomSkin(
       draft.name.trim() || '我的主题',
-      { primary: draft.primary, bg: draft.bg, accent: draft.accent },
+      { primary: draft.primary, bg: draft.bg, accent: draft.accent, card: cardInput() },
       id,
     )
     await saveCustomSkin(derived)
@@ -139,7 +153,15 @@ export function ThemePage() {
   const enterEditPreset = (s: Skin) => {
     savedSkinRef.current = skin
     editingCustomRef.current = null
-    setDraft({ name: s.name, primary: s.light.primary, bg: s.light.bg, accent: s.light.accent })
+    const cTok = s.card?.light
+    setDraft({
+      name: s.name,
+      primary: s.light.primary,
+      bg: s.light.bg,
+      accent: s.light.accent,
+      cardBg: cTok?.bg ?? '',
+      cardBorder: cTok?.border ?? '',
+    })
     editingPresetRef.current = s.id
     setCreating(true) // 复用创建浮层 UI
   }
@@ -148,7 +170,15 @@ export function ThemePage() {
     savedSkinRef.current = skin
     editingPresetRef.current = null
     const p = mode === 'dark' ? s.dark : s.light
-    setDraft({ name: s.name, primary: p.primary, bg: p.bg, accent: p.accent })
+    const cTok = s.card?.[mode === 'dark' ? 'dark' : 'light'] ?? s.card?.light
+    setDraft({
+      name: s.name,
+      primary: p.primary,
+      bg: p.bg,
+      accent: p.accent,
+      cardBg: cTok?.bg ?? '',
+      cardBorder: cTok?.border ?? '',
+    })
     editingCustomRef.current = s.id
     setCreating(true)
   }
@@ -160,6 +190,7 @@ export function ThemePage() {
       primary: draft.primary,
       bg: draft.bg,
       accent: draft.accent,
+      card: cardInput(),
     })
     // 保留原皮肤的分组与装饰（角色皮肤的 motif），仅重派配色
     if (orig) {
@@ -329,8 +360,13 @@ export function ThemePage() {
     )
   }
 
-  const renderColorSection = (label: string, which: 'primary' | 'bg' | 'accent') => {
+  const renderColorSection = (
+    label: string,
+    which: 'primary' | 'bg' | 'accent' | 'cardBg' | 'cardBorder',
+    placeholder?: string,
+  ) => {
     const all = SWATCH_GROUPS.flatMap((g) => g.colors)
+    const val = draft[which] || '#ffffff'
     return (
       <section className="mb-5">
         <h3 className="mb-2 text-sm font-medium text-ink-2">{label}</h3>
@@ -354,7 +390,7 @@ export function ThemePage() {
         <div className="mt-3 flex items-center gap-3">
           <input
             type="color"
-            value={draft[which]}
+            value={val}
             onChange={(e) => setColor(which, e.target.value)}
             className="h-11 w-12 cursor-pointer rounded-[12px] border border-line bg-surface-sunken"
             aria-label={label + ' 取色器'}
@@ -362,7 +398,7 @@ export function ThemePage() {
           <input
             value={draft[which]}
             onChange={(e) => onHexText(which, e.target.value)}
-            placeholder="#RRGGBB"
+            placeholder={placeholder ?? '#RRGGBB'}
             className="flex-1 rounded-card bg-surface-sunken px-3 py-2.5 text-sm uppercase text-ink outline-none placeholder:text-ink-3"
           />
         </div>
@@ -497,6 +533,22 @@ export function ThemePage() {
             {renderColorSection('主色（按钮 / 高亮点缀）', 'primary')}
             {renderColorSection('背景色（页面底色 / 文字基调）', 'bg')}
             {renderColorSection('强调色（accent）', 'accent')}
+
+            {/* 卡片配色（皮肤中心「自定义卡片颜色」，迭代 1：预设色板 + 跟随主题/恢复默认） */}
+            <div className="mb-1 mt-6 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-ink">卡片配色（可选）</h3>
+              <button
+                onClick={() => setDraft((d) => ({ ...d, cardBg: '', cardBorder: '' }))}
+                className="pressable rounded-pill bg-surface-sunken px-3 py-1 text-xs text-ink-2 active:opacity-70"
+              >
+                恢复默认
+              </button>
+            </div>
+            <p className="mb-3 text-xs text-ink-3">
+              只改变全 App 卡片的背景与描边，卡片文字自动黑白保证可读；不设则跟随主题。
+            </p>
+            {renderColorSection('卡片背景', 'cardBg', '跟随主题')}
+            {renderColorSection('卡片描边', 'cardBorder', '无描边')}
 
             <p className="text-xs leading-relaxed text-ink-3">
               主题由主色、背景、强调三种颜色分别生成（含浅色 / 深色），实时预览到首页、设置页与底部导航。主色自动调整为清晰可读的深度，你选的鲜艳原色作为主要点缀色呈现；背景与强调可独立微调，打造专属配色。
