@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { getDayStatus, getFestivalName, getDayOverride } from '../../services/schedule'
+import { getDayStatus, getFestivalName, getDayOverride, setUserFestival } from '../../services/schedule'
 
 const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -8,6 +8,14 @@ const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 export function ScheduleCalendar() {
   const today = dayjs().startOf('day')
   const [view, setView] = useState<dayjs.Dayjs>(today.startOf('month'))
+  // 应用内编辑：当前选中的日期 + 输入框草稿
+  const [selected, setSelected] = useState<dayjs.Dayjs | null>(null)
+  const [draft, setDraft] = useState('')
+
+  const openEdit = (d: dayjs.Dayjs) => {
+    setSelected(d)
+    setDraft(getFestivalName(d))
+  }
 
   const cells = useMemo(() => {
     const first = view.startOf('month')
@@ -71,13 +79,22 @@ export function ScheduleCalendar() {
               ? 'bg-primary/12 text-primary'
               : 'bg-surface-sunken text-ink-2'
             : 'bg-amber-100 text-amber-700'
+          const isSel = selected?.isSame(d, 'day') ?? false
           return (
-            <div key={i} className="flex flex-col items-center">
+            <div
+              key={i}
+              onClick={() => openEdit(d)}
+              className={`flex cursor-pointer flex-col items-center rounded-lg py-1 ${
+                isSel ? 'bg-surface-sunken ring-1 ring-primary/30' : ''
+              }`}
+            >
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-pill text-sm ${
                   isToday
                     ? 'bg-primary font-semibold text-bg ring-2 ring-primary/30'
-                    : 'text-ink'
+                    : isSel
+                      ? 'font-semibold text-primary'
+                      : 'text-ink'
                 }`}
               >
                 {d.date()}
@@ -99,6 +116,47 @@ export function ScheduleCalendar() {
         })}
       </div>
 
+      {/* 应用内编辑：点日期后展开，输入即存本机 */}
+      {selected && (
+        <div className="mt-3 rounded-2xl bg-surface-sunken p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-medium text-ink">
+              {selected.format('M月D日')} 节日名
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="pressable text-xs text-ink-3"
+            >
+              收起
+            </button>
+          </div>
+          <input
+            value={draft}
+            onChange={(e) => {
+              const v = e.target.value
+              setDraft(v)
+              setUserFestival(selected, v) // 即时保存本机
+            }}
+            placeholder="输入节日名称（留空=不显示）"
+            className="w-full rounded-pill bg-bg px-3 py-2 text-sm text-ink outline-none ring-1 ring-black/5"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setUserFestival(selected, '')
+                setDraft('')
+              }}
+              className="pressable rounded-pill bg-red-500/10 px-3 py-1.5 text-xs text-red-500"
+            >
+              删除
+            </button>
+            <span className="text-[11px] text-ink-3">本机保存，刷新不丢，不影响预设排班</span>
+          </div>
+        </div>
+      )}
+
       {/* 图例 + 基准说明 */}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-ink-3">
         <span>
@@ -112,7 +170,7 @@ export function ScheduleCalendar() {
         </span>
       </div>
       <p className="mt-2 text-center text-[11px] text-ink-3">
-        基准：2026/8/31 起单双周轮替 · 法定节假日优先
+        点任意日期可编辑节日名 · 基准：2026/8/31 起单双周轮替
       </p>
     </div>
   )

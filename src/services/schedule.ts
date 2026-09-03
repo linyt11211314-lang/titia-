@@ -12,6 +12,37 @@ interface HolidayConfig {
 const config = raw as HolidayConfig
 const festivals = config.festivals ?? {}
 
+// 用户在本机（localStorage）自行编辑的节日名，优先级高于配置文件 festivals。
+const USER_FESTIVAL_KEY = 'titia:scheduleFestivals'
+
+function loadUserFestivals(): Record<string, string> {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(USER_FESTIVAL_KEY)
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {}
+  } catch {
+    return {}
+  }
+}
+
+let userFestivals: Record<string, string> = loadUserFestivals()
+
+// 应用内编辑：保存某天节日名（留空/纯空白 = 删除）。即时写入本机，刷新不丢。
+export function setUserFestival(input: dayjs.Dayjs | Date | string, name: string): void {
+  const key = dayjs(input).startOf('day').format('YYYY-MM-DD')
+  const next = { ...userFestivals }
+  if (name && name.trim()) next[key] = name.trim()
+  else delete next[key]
+  userFestivals = next
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(USER_FESTIVAL_KEY, JSON.stringify(next))
+    } catch {
+      /* 忽略写入失败（如隐私模式） */
+    }
+  }
+}
+
 // 锚点：含 2026-08-31（周一）的那一周（即当前所在周 8/31–9/6）。weekType=single 表示锚点周为「单休」。
 const ANCHOR_MONDAY = dayjs(config.anchor.monday).startOf('day')
 const ANCHOR_IS_SINGLE = config.anchor.weekType === 'single'
@@ -59,8 +90,8 @@ export function getDayOverride(input: dayjs.Dayjs | Date | string): DayStatus | 
   return v === '休' || v === '班' ? v : ''
 }
 
-// 节日名称（仅展示用，不参与排班判定）。未配置返回空串。
+// 节日名称：用户本机编辑 > 配置文件 festivals。仅展示用，不参与排班判定。
 export function getFestivalName(input: dayjs.Dayjs | Date | string): string {
   const key = dayjs(input).startOf('day').format('YYYY-MM-DD')
-  return festivals[key] ?? ''
+  return userFestivals[key] ?? festivals[key] ?? ''
 }
