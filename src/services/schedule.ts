@@ -6,11 +6,13 @@ export type DayStatus = '班' | '休'
 interface HolidayConfig {
   anchor: { monday: string; weekType: 'single' | 'double' }
   days: Record<string, DayStatus>
+  festivals?: Record<string, string>
 }
 
 const config = raw as HolidayConfig
+const festivals = config.festivals ?? {}
 
-// 锚点：含 2026-09-07（周一）的那一周。weekType=single 表示锚点周为「单休」。
+// 锚点：含 2026-08-31（周一）的那一周（即当前所在周 8/31–9/6）。weekType=single 表示锚点周为「单休」。
 const ANCHOR_MONDAY = dayjs(config.anchor.monday).startOf('day')
 const ANCHOR_IS_SINGLE = config.anchor.weekType === 'single'
 
@@ -26,10 +28,10 @@ function mondayOf(input: dayjs.Dayjs): dayjs.Dayjs {
  *
  * 判定优先级（不可颠倒）：
  *   1) 查表：若该日期在 holiday_config.json 的 days 中标记为「休」或「班」，直接返回并终止。
- *   2) 大小周推算：以 2026-09-07 所在周为基准周（单休），按 7 天为一周向前/向后严格轮替：
+ *   2) 大小周推算：以 2026-08-31 所在周为基准周（单休），按 7 天为一周向前/向后严格轮替：
  *        - 单休周：仅周日休息，其余上班（含周六上班）。
  *        - 双休周：周六、周日休息，其余上班。
- *      历史月份（如 2026-08）也从 2026-09-07 这一周向前倒推，避免跨月周数断裂导致漂移。
+ *      历史月份（如 2026-08）也从 2026-08-31 这一周向前倒推，避免跨月周数断裂导致漂移。
  */
 export function getDayStatus(input: dayjs.Dayjs | Date | string): DayStatus {
   const d = dayjs(input).startOf('day')
@@ -48,4 +50,17 @@ export function getDayStatus(input: dayjs.Dayjs | Date | string): DayStatus {
     return dow === 0 ? '休' : '班'
   }
   return dow === 0 || dow === 6 ? '休' : '班'
+}
+
+// 查表原始覆盖（休/班/空），供 UI 判断「调休补班」（班且来自表）等场景
+export function getDayOverride(input: dayjs.Dayjs | Date | string): DayStatus | '' {
+  const key = dayjs(input).startOf('day').format('YYYY-MM-DD')
+  const v = config.days[key]
+  return v === '休' || v === '班' ? v : ''
+}
+
+// 节日名称（仅展示用，不参与排班判定）。未配置返回空串。
+export function getFestivalName(input: dayjs.Dayjs | Date | string): string {
+  const key = dayjs(input).startOf('day').format('YYYY-MM-DD')
+  return festivals[key] ?? ''
 }
