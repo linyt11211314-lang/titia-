@@ -1,21 +1,61 @@
 import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { getDayStatus, getFestivalName, getDayOverride, setUserFestival } from '../../services/schedule'
+import {
+  getDayStatus,
+  getFestivalName,
+  isMakeupDay,
+  getUserDayStatus,
+  setUserDayStatus,
+} from '../../services/schedule'
 
 const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+
+// 应用内编辑面板：切换某天 休/班/补班（即时存本机 localStorage）
+function DayStatusEditor({ date }: { date: dayjs.Dayjs }) {
+  const cur = getUserDayStatus(date)
+  const options: { key: '休' | '班' | '补班'; label: string }[] = [
+    { key: '休', label: '休' },
+    { key: '班', label: '班' },
+    { key: '补班', label: '补班' },
+  ]
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {options.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => setUserDayStatus(date, o.key)}
+          className={`pressable rounded-pill py-2 text-sm ${
+            cur === o.key
+              ? 'bg-primary font-semibold text-bg'
+              : 'bg-bg text-ink-2 ring-1 ring-black/5'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => setUserDayStatus(date, null)}
+        className={`pressable rounded-pill py-2 text-sm ${
+          !cur ? 'bg-primary font-semibold text-bg' : 'bg-bg text-ink-3 ring-1 ring-black/5'
+        }`}
+      >
+        默认
+      </button>
+    </div>
+  )
+}
+
 
 // 排班日历：Sheet 内容。支持左右翻页（历史/未来年份），默认当前月并高亮今日。
 export function ScheduleCalendar() {
   const today = dayjs().startOf('day')
   const [view, setView] = useState<dayjs.Dayjs>(today.startOf('month'))
-  // 应用内编辑：当前选中的日期 + 输入框草稿
+  // 应用内编辑：当前选中的日期
   const [selected, setSelected] = useState<dayjs.Dayjs | null>(null)
-  const [draft, setDraft] = useState('')
 
-  const openEdit = (d: dayjs.Dayjs) => {
-    setSelected(d)
-    setDraft(getFestivalName(d))
-  }
+  const openEdit = (d: dayjs.Dayjs) => setSelected(d)
 
   const cells = useMemo(() => {
     const first = view.startOf('month')
@@ -71,15 +111,16 @@ export function ScheduleCalendar() {
           const isToday = d.isSame(today, 'day')
           const isRest = status === '休'
           const festival = getFestivalName(d)
-          // 调休补班：表中标记为「班」且非节日（如春节前的周六补班）
-          const isMakeup = !festival && getDayOverride(d) === '班'
-          const label = festival || (isMakeup ? '调休' : '')
-          const labelCls = festival
-            ? isRest
+          const isMakeup = isMakeupDay(d)
+          const isSel = selected?.isSame(d, 'day') ?? false
+          // 单元格主标签优先级：补班(amber) > 节日名 > 无（无则显示 休/班）
+          const label = isMakeup ? '补班' : festival
+          const showStatusOnly = !label
+          const labelCls = isMakeup
+            ? 'bg-amber-100 text-amber-700'
+            : isRest
               ? 'bg-primary/12 text-primary'
               : 'bg-surface-sunken text-ink-2'
-            : 'bg-amber-100 text-amber-700'
-          const isSel = selected?.isSame(d, 'day') ?? false
           return (
             <div
               key={i}
@@ -99,30 +140,27 @@ export function ScheduleCalendar() {
               >
                 {d.date()}
               </div>
-              {label ? (
-                <span className={`mt-0.5 max-w-[42px] truncate rounded px-1 text-[9px] leading-tight ${labelCls}`}>
-                  {label}
-                </span>
-              ) : (
+              {showStatusOnly ? (
                 <span className={`mt-0.5 text-[10px] ${isRest ? 'text-primary' : 'text-ink-3'}`}>
                   {status}
                 </span>
+              ) : (
+                <span
+                  className={`mt-0.5 max-w-[42px] truncate rounded px-1 text-[9px] leading-tight ${labelCls}`}
+                >
+                  {label}
+                </span>
               )}
-              {label ? (
-                <span className={`text-[9px] ${isRest ? 'text-primary' : 'text-ink-3'}`}>{status}</span>
-              ) : null}
             </div>
           )
         })}
       </div>
 
-      {/* 应用内编辑：点日期后展开，输入即存本机 */}
+      {/* 应用内编辑：点日期后展开，切换 休/班/补班，即时存本机 */}
       {selected && (
         <div className="mt-3 rounded-2xl bg-surface-sunken p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-ink">
-              {selected.format('M月D日')} 节日名
-            </span>
+            <span className="text-sm font-medium text-ink">{selected.format('M月D日')} 排班</span>
             <button
               type="button"
               onClick={() => setSelected(null)}
@@ -131,29 +169,10 @@ export function ScheduleCalendar() {
               收起
             </button>
           </div>
-          <input
-            value={draft}
-            onChange={(e) => {
-              const v = e.target.value
-              setDraft(v)
-              setUserFestival(selected, v) // 即时保存本机
-            }}
-            placeholder="输入节日名称（留空=不显示）"
-            className="w-full rounded-pill bg-bg px-3 py-2 text-sm text-ink outline-none ring-1 ring-black/5"
-          />
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setUserFestival(selected, '')
-                setDraft('')
-              }}
-              className="pressable rounded-pill bg-red-500/10 px-3 py-1.5 text-xs text-red-500"
-            >
-              删除
-            </button>
-            <span className="text-[11px] text-ink-3">本机保存，刷新不丢，不影响预设排班</span>
-          </div>
+          <DayStatusEditor date={selected} />
+          <p className="mt-2 text-[11px] text-ink-3">
+            本机保存，刷新不丢 · 优先级高于大小周与节假日表
+          </p>
         </div>
       )}
 
@@ -170,7 +189,7 @@ export function ScheduleCalendar() {
         </span>
       </div>
       <p className="mt-2 text-center text-[11px] text-ink-3">
-        点任意日期可编辑节日名 · 基准：2026/8/31 起单双周轮替
+        点任意日期可改 休/班/补班 · 基准：2026/8/31 起单双周轮替
       </p>
     </div>
   )
