@@ -18,6 +18,7 @@ import { useSettingsStore } from '../../stores/useSettingsStore'
 import { navigate } from '../../app/useHashRoute'
 import { getWeatherDetail, type WeatherDetail } from '../../services/weather'
 import { WeatherSheet } from '../../components/weather/WeatherSheet'
+import { ScheduleCalendar } from '../../components/schedule/ScheduleCalendar'
 import { checkInToday, isCheckedToday, usageDays, streakDays } from '../../services/checkin'
 import type { TransactionEntity } from '../../db/types'
 
@@ -188,7 +189,23 @@ export function HomePage() {
           <MotifCorner size={88} opacity={0.1} />
           <div className="relative">
             <p className="text-xs text-ink-3">Titia 时序</p>
-            <h1 className="mt-0.5 text-2xl font-semibold text-ink">{GREET()}</h1>
+            <button
+              type="button"
+              onClick={() =>
+                open(
+                  <Sheet title="排班日历" onClose={close}>
+                    <ScheduleCalendar />
+                  </Sheet>,
+                )
+              }
+              className="pressable mt-0.5 flex items-center gap-1.5 text-left"
+              aria-label="打开排班日历"
+            >
+              <span className="text-2xl font-semibold text-ink">{GREET()}</span>
+              <span className="rounded-pill bg-surface-sunken px-2 py-0.5 text-[11px] text-ink-2">
+                📅 排班
+              </span>
+            </button>
             {/* 世界时钟：伦敦 / 迪拜 实时时间 */}
             <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] leading-tight text-ink-2">
               <TimeDisplay label="伦敦" timeZone="Europe/London" />
