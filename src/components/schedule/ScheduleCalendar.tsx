@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type TouchEvent } from 'react'
 import dayjs from 'dayjs'
 import {
   getDayStatus,
@@ -55,7 +55,13 @@ export function ScheduleCalendar() {
   // 应用内编辑：当前选中的日期
   const [selected, setSelected] = useState<dayjs.Dayjs | null>(null)
 
-  const openEdit = (d: dayjs.Dayjs) => setSelected(d)
+  const openEdit = (d: dayjs.Dayjs) => {
+    if (movedRef.current) {
+      movedRef.current = false // 滑动结束后的一次点按视为误触，忽略
+      return
+    }
+    setSelected(d)
+  }
 
   const cells = useMemo(() => {
     const first = view.startOf('month')
@@ -70,6 +76,37 @@ export function ScheduleCalendar() {
 
   const prev = () => setView((v) => v.subtract(1, 'month'))
   const next = () => setView((v) => v.add(1, 'month'))
+
+  // 左右滑动切换月份（触摸）。拖动时网格跟随手指预览，松手超过阈值即切换。
+  const startRef = useRef<{ x: number; y: number } | null>(null)
+  const movedRef = useRef(false)
+  const [dragX, setDragX] = useState(0)
+
+  const onTouchStart = (e: TouchEvent) => {
+    const t = e.touches[0]
+    startRef.current = { x: t.clientX, y: t.clientY }
+    movedRef.current = false
+    setDragX(0)
+  }
+  const onTouchMove = (e: TouchEvent) => {
+    if (!startRef.current) return
+    const t = e.touches[0]
+    const dx = t.clientX - startRef.current.x
+    const dy = t.clientY - startRef.current.y
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) > 8) movedRef.current = true
+      setDragX(dx)
+    }
+  }
+  const onTouchEnd = () => {
+    const dx = dragX
+    startRef.current = null
+    if (Math.abs(dx) > 50) {
+      if (dx < 0) next() // 左滑 → 下一月
+      else prev() // 右滑 → 上一月
+    }
+    setDragX(0)
+  }
 
   return (
     <div>
@@ -103,57 +140,72 @@ export function ScheduleCalendar() {
         ))}
       </div>
 
-      {/* 日期网格 */}
-      <div className="grid grid-cols-7 gap-y-2 gap-x-1">
-        {cells.map((d, i) => {
-          if (!d) return <div key={i} />
-          const status = getDayStatus(d)
-          const isToday = d.isSame(today, 'day')
-          const isRest = status === '休'
-          const festival = getFestivalName(d)
-          const isMakeup = isMakeupDay(d)
-          const isSel = selected?.isSame(d, 'day') ?? false
-          // 单元格主标签优先级：补班(amber) > 节日名 > 无（无则显示 休/班）
-          const label = isMakeup ? '补班' : festival
-          const showStatusOnly = !label
-          const labelCls = isMakeup
-            ? 'bg-amber-100 text-amber-700'
-            : isRest
-              ? 'bg-primary/12 text-primary'
-              : 'bg-surface-sunken text-ink-2'
-          return (
-            <div
-              key={i}
-              onClick={() => openEdit(d)}
-              className={`flex cursor-pointer flex-col items-center rounded-lg py-1 ${
-                isSel ? 'bg-surface-sunken ring-1 ring-primary/30' : ''
-              }`}
-            >
+      {/* 日期网格（可左右滑动切换月份） */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{ touchAction: 'pan-y' }}
+        className="select-none"
+      >
+        <div
+          className="grid grid-cols-7 gap-y-2 gap-x-1"
+          style={{
+            transform: dragX ? `translateX(${dragX}px)` : undefined,
+            transition: dragX ? 'none' : 'transform 0.2s ease',
+            opacity: dragX ? 0.85 : 1,
+          }}
+        >
+          {cells.map((d, i) => {
+            if (!d) return <div key={i} />
+            const status = getDayStatus(d)
+            const isToday = d.isSame(today, 'day')
+            const isRest = status === '休'
+            const festival = getFestivalName(d)
+            const isMakeup = isMakeupDay(d)
+            const isSel = selected?.isSame(d, 'day') ?? false
+            // 单元格主标签优先级：补班(amber) > 节日名 > 无（无则显示 休/班）
+            const label = isMakeup ? '补班' : festival
+            const showStatusOnly = !label
+            const labelCls = isMakeup
+              ? 'bg-amber-100 text-amber-700'
+              : isRest
+                ? 'bg-primary/12 text-primary'
+                : 'bg-surface-sunken text-ink-2'
+            return (
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-pill text-sm ${
-                  isToday
-                    ? 'bg-primary font-semibold text-bg ring-2 ring-primary/30'
-                    : isSel
-                      ? 'font-semibold text-primary'
-                      : 'text-ink'
+                key={i}
+                onClick={() => openEdit(d)}
+                className={`flex cursor-pointer flex-col items-center rounded-lg py-1 ${
+                  isSel ? 'bg-surface-sunken ring-1 ring-primary/30' : ''
                 }`}
               >
-                {d.date()}
-              </div>
-              {showStatusOnly ? (
-                <span className={`mt-0.5 text-[10px] ${isRest ? 'text-primary' : 'text-ink-3'}`}>
-                  {status}
-                </span>
-              ) : (
-                <span
-                  className={`mt-0.5 max-w-[42px] truncate rounded px-1 text-[9px] leading-tight ${labelCls}`}
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-pill text-sm ${
+                    isToday
+                      ? 'bg-primary font-semibold text-bg ring-2 ring-primary/30'
+                      : isSel
+                        ? 'font-semibold text-primary'
+                        : 'text-ink'
+                  }`}
                 >
-                  {label}
-                </span>
-              )}
-            </div>
-          )
-        })}
+                  {d.date()}
+                </div>
+                {showStatusOnly ? (
+                  <span className={`mt-0.5 text-[10px] ${isRest ? 'text-primary' : 'text-ink-3'}`}>
+                    {status}
+                  </span>
+                ) : (
+                  <span
+                    className={`mt-0.5 max-w-[42px] truncate rounded px-1 text-[9px] leading-tight ${labelCls}`}
+                  >
+                    {label}
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* 应用内编辑：点日期后展开，切换 休/班/补班，即时存本机 */}
@@ -189,7 +241,7 @@ export function ScheduleCalendar() {
         </span>
       </div>
       <p className="mt-2 text-center text-[11px] text-ink-3">
-        点任意日期可改 休/班/补班 · 基准：2026/8/31 起单双周轮替
+        左右滑动或点箭头切换月份 · 点日期改 休/班/补班 · 基准：2026/8/31 起单双周轮替
       </p>
     </div>
   )
