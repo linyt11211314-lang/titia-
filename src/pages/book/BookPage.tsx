@@ -1329,7 +1329,11 @@ export function BookPage() {
                 )}
 
                 {/* 本月收支（点击进入分析） */}
-                <button onClick={() => switchView('analysis')} className="mb-3 block w-full rounded-card bg-surface p-4 text-left shadow-soft">
+                <button
+                  onClick={() => switchView('analysis')}
+                  className="mb-3 block w-full rounded-card p-4 text-left shadow-soft"
+                  style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                >
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-ink-3">本月</p>
                     <span className="text-xs text-ink-3">›</span>
@@ -1350,8 +1354,12 @@ export function BookPage() {
                   </div>
                 </button>
 
-                {/* 预算进度（最多 6 行；点「查看全部预算」进预算页） */}
-                <button onClick={() => switchView('budgets')} className="mb-3 block w-full rounded-card bg-surface p-4 text-left shadow-soft">
+                {/* 本月预算（最多 6 行；点「查看全部预算」进预算页） */}
+                <button
+                  onClick={() => switchView('budgets')}
+                  className="mb-3 block w-full rounded-card p-4 text-left shadow-soft"
+                  style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                >
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-ink-3">本月预算</p>
                     <span className="text-xs text-ink-3">›</span>
@@ -1424,7 +1432,10 @@ export function BookPage() {
                   </div>
 
                   {/* 本月概览 */}
-                  <div className="mb-3 rounded-card bg-surface p-4 shadow-soft">
+                  <div
+                    className="mb-3 rounded-card p-4 shadow-soft"
+                    style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                  >
                     <p className="text-xs text-ink-3">本月支出</p>
                     <p className="mt-0.5 text-2xl font-bold text-ink">¥{(monthExpense / 100).toFixed(2)}</p>
                     <p className="mt-1 text-xs text-ink-3">
@@ -1489,7 +1500,11 @@ export function BookPage() {
                 ) : (
                   <div ref={billListRef} className="flex flex-col gap-3">
                     {billGroups.map((g) => (
-                      <div key={g.date} className="overflow-hidden rounded-card bg-surface shadow-soft">
+                      <div
+                        key={g.date}
+                        className="overflow-hidden rounded-card shadow-soft"
+                        style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                      >
                         {/* 日期栏：左日期 · 右当天支出/收入汇总（右对齐） */}
                         <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
                           <p className="text-sm font-semibold text-ink">
@@ -1683,7 +1698,10 @@ export function BookPage() {
                   <h2 className="text-lg font-semibold text-ink">分析</h2>
                 </div>
                 {/* 月份筛选：左右切换 */}
-                <div className="mb-3 flex items-center justify-between rounded-card bg-surface px-3 py-2 shadow-soft">
+                <div
+                  className="mb-3 flex items-center justify-between rounded-card px-3 py-2 shadow-soft"
+                  style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                >
                   <button
                     type="button"
                     aria-label="上个月"
@@ -1710,21 +1728,33 @@ export function BookPage() {
                 </div>
                 {/* 选中月份收支三卡 */}
                 <div className="mb-3 grid grid-cols-3 gap-2">
-                  <div className="rounded-card bg-surface p-3 shadow-soft">
+                  <div
+                    className="rounded-card p-3 shadow-soft"
+                    style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                  >
                     <p className="text-xs text-ink-3">收入</p>
                     <p className="mt-1 text-base font-bold text-accent">¥{(anaIncome / 100).toFixed(0)}</p>
                   </div>
-                  <div className="rounded-card bg-surface p-3 shadow-soft">
+                  <div
+                    className="rounded-card p-3 shadow-soft"
+                    style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                  >
                     <p className="text-xs text-ink-3">支出</p>
                     <p className="mt-1 text-base font-bold text-ink">¥{(anaExpense / 100).toFixed(0)}</p>
                   </div>
-                  <div className="rounded-card bg-surface p-3 shadow-soft">
+                  <div
+                    className="rounded-card p-3 shadow-soft"
+                    style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                  >
                     <p className="text-xs text-ink-3">结余</p>
                     <p className="mt-1 text-base font-bold text-primary">¥{((anaIncome - anaExpense) / 100).toFixed(0)}</p>
                   </div>
                 </div>
                 {/* 消费趋势：点击柱子 → 切换选中月份（联动筛选） */}
-                <div className="mb-3 rounded-card bg-surface p-4 shadow-soft">
+                <div
+                  className="mb-3 rounded-card p-4 shadow-soft"
+                  style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                >
                   <p className="mb-2 text-xs text-ink-3">消费趋势（近 6 月支出 · 点柱子切换月份）</p>
                   <Bars
                     values={last6Months.map((m) => m.expense)}
@@ -1739,7 +1769,10 @@ export function BookPage() {
                 </div>
                 </div>
                 {/* 分类占比（可滚动）：点击分类行 → 联动对应分类账单明细 */}
-                <div className="mb-3 rounded-card bg-surface p-4 shadow-soft">
+                <div
+                  className="mb-3 rounded-card p-4 shadow-soft"
+                  style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                >
                   <p className="mb-3 text-xs text-ink-3">分类占比（{dayjs(anaMonth + '-01').format('M 月')}支出 · 点分类看明细）</p>
                   {anaCatShares.length ? (
                     <Donut
@@ -1752,7 +1785,10 @@ export function BookPage() {
                   )}
                 </div>
                 {/* 月度报告（可滚动，选中月份） */}
-                <div className="rounded-card bg-surface p-4 shadow-soft">
+                <div
+                  className="rounded-card p-4 shadow-soft"
+                  style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                >
                   <p className="mb-2 text-xs text-ink-3">月度报告 · {dayjs(anaMonth + '-01').format('YYYY 年 M 月')}</p>
                   <div className="space-y-1.5 text-sm text-ink">
                     <p>共 <span className="font-semibold text-primary">{anaBills.length}</span> 笔账单</p>
@@ -1774,7 +1810,10 @@ export function BookPage() {
                     )}
                   </div>
                   {anaDetail.length === 0 ? (
-                    <p className="rounded-card bg-surface px-4 py-6 text-center text-sm text-ink-3 shadow-soft">
+                    <p
+                      className="rounded-card px-4 py-6 text-center text-sm text-ink-3 shadow-soft"
+                      style={{ background: 'var(--card-bg, var(--color-surface))' }}
+                    >
                       该月暂无{anaCat ? `「${anaCat}」` : ''}支出记录
                     </p>
                   ) : (
