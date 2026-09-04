@@ -198,13 +198,10 @@ export function HomePage() {
                   </Sheet>,
                 )
               }
-              className="pressable mt-0.5 flex items-center gap-1.5 text-left"
-              aria-label="打开排班日历"
+              className="pressable mt-0.5 text-left"
+              aria-label="打开日历"
             >
               <span className="text-2xl font-semibold text-ink">{GREET()}</span>
-              <span className="rounded-pill bg-surface-sunken px-2 py-0.5 text-[11px] text-ink-2">
-                📅 排班
-              </span>
             </button>
             {/* 世界时钟：伦敦 / 迪拜 实时时间 */}
             <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] leading-tight text-ink-2">

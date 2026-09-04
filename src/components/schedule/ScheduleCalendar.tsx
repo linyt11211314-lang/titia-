@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type TouchEvent } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
 import dayjs from 'dayjs'
 import {
   getDayStatus,
@@ -47,66 +47,188 @@ function DayStatusEditor({ date }: { date: dayjs.Dayjs }) {
   )
 }
 
+// 单月网格。用 memo 包裹：滑动期间父组件不重渲染，故单元格不重算，保证丝滑。
+const MonthGrid = memo(function MonthGrid({
+  month,
+  isCenter,
+  selected,
+  today,
+  onPickDay,
+  onJumpMonth,
+}: {
+  month: dayjs.Dayjs
+  isCenter: boolean
+  selected: dayjs.Dayjs | null
+  today: dayjs.Dayjs
+  onPickDay: (d: dayjs.Dayjs) => void
+  onJumpMonth: (m: dayjs.Dayjs) => void
+}) {
+  const first = month.startOf('month')
+  const leading = first.day() // 0=周日，前置空格数
+  const days = month.daysInMonth()
+  const cells: (dayjs.Dayjs | null)[] = []
+  for (let i = 0; i < leading; i++) cells.push(null)
+  for (let d = 1; d <= days; d++) cells.push(first.date(d))
+  while (cells.length % 7 !== 0) cells.push(null) // 补齐整周
 
-// 排班日历：Sheet 内容。支持左右翻页（历史/未来年份），默认当前月并高亮今日。
+  return (
+    <div className="grid grid-cols-7 gap-y-2 gap-x-1">
+      {cells.map((d, i) => {
+        if (!d) return <div key={i} />
+        const status = getDayStatus(d)
+        const isToday = d.isSame(today, 'day')
+        const isRest = status === '休'
+        const festival = getFestivalName(d)
+        const isMakeup = isMakeupDay(d)
+        const isSel = selected?.isSame(d, 'day') ?? false
+        // 单元格主标签优先级：补班(amber) > 节日名 > 无（无则显示 休/班）
+        const label = isMakeup ? '补班' : festival
+        const showStatusOnly = !label
+        const labelCls = isMakeup
+          ? 'bg-amber-100 text-amber-700'
+          : isRest
+            ? 'bg-primary/12 text-primary'
+            : 'bg-surface-sunken text-ink-2'
+        return (
+          <div
+            key={i}
+            onClick={() => (isCenter ? onPickDay(d) : onJumpMonth(month))}
+            className={`flex cursor-pointer flex-col items-center rounded-lg py-1 ${
+              isSel ? 'bg-surface-sunken ring-1 ring-primary/30' : ''
+            }`}
+          >
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-pill text-sm ${
+                isToday
+                  ? 'bg-primary font-semibold text-bg ring-2 ring-primary/30'
+                  : isSel
+                    ? 'font-semibold text-primary'
+                    : 'text-ink'
+              }`}
+            >
+              {d.date()}
+            </div>
+            {showStatusOnly ? (
+              <span className={`mt-0.5 text-[10px] ${isRest ? 'text-primary' : 'text-ink-3'}`}>
+                {status}
+              </span>
+            ) : (
+              <span
+                className={`mt-0.5 max-w-[42px] truncate rounded px-1 text-[9px] leading-tight ${labelCls}`}
+              >
+                {label}
+              </span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+})
+
+// 排班日历：Sheet 内容。支持左右滑动切换月份（相邻月预览），默认当前月并高亮今日。
 export function ScheduleCalendar() {
   const today = dayjs().startOf('day')
   const [view, setView] = useState<dayjs.Dayjs>(today.startOf('month'))
   // 应用内编辑：当前选中的日期
   const [selected, setSelected] = useState<dayjs.Dayjs | null>(null)
 
-  const openEdit = (d: dayjs.Dayjs) => {
+  // 滑动手势相关（全部走 ref，不触发 React 重渲染，保证丝滑）
+  const outerRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const wRef = useRef(0) // 单页（=容器）宽度
+  const drag = useRef({ active: false, startX: 0, lastX: 0, moved: false, horizontal: true })
+  const rafRef = useRef<number | null>(null)
+  const movedRef = useRef(false) // 滑动结束后的一次点按视为误触，忽略
+
+  const openEdit = useCallback((d: dayjs.Dayjs) => {
     if (movedRef.current) {
-      movedRef.current = false // 滑动结束后的一次点按视为误触，忽略
+      movedRef.current = false // 滑动误触，忽略
       return
     }
     setSelected(d)
-  }
+  }, [])
+  const jumpMonth = useCallback((m: dayjs.Dayjs) => {
+    movedRef.current = false
+    setView(m.startOf('month'))
+  }, [])
 
-  const cells = useMemo(() => {
-    const first = view.startOf('month')
-    const leading = first.day() // 0=周日，前置空格数
-    const daysInMonth = view.daysInMonth()
-    const arr: (dayjs.Dayjs | null)[] = []
-    for (let i = 0; i < leading; i++) arr.push(null)
-    for (let d = 1; d <= daysInMonth; d++) arr.push(first.date(d))
-    while (arr.length % 7 !== 0) arr.push(null) // 补齐整周
-    return arr
-  }, [view])
+  // 初始把轨道定位到中间页
+  useEffect(() => {
+    const w = outerRef.current?.clientWidth ?? 0
+    wRef.current = w
+    if (trackRef.current) {
+      trackRef.current.style.transition = 'none'
+      trackRef.current.style.transform = `translateX(${-w}px)`
+    }
+  }, [])
 
   const prev = () => setView((v) => v.subtract(1, 'month'))
   const next = () => setView((v) => v.add(1, 'month'))
 
-  // 左右滑动切换月份（触摸）。拖动时网格跟随手指预览，松手超过阈值即切换。
-  const startRef = useRef<{ x: number; y: number } | null>(null)
-  const movedRef = useRef(false)
-  const [dragX, setDragX] = useState(0)
+  // 直接改轨道 DOM 的 transform（不进 React state，零重渲染）
+  const setTrack = (px: number, animate: boolean) => {
+    const el = trackRef.current
+    if (!el) return
+    el.style.transition = animate ? 'transform 0.22s ease' : 'none'
+    el.style.transform = `translateX(${px}px)`
+  }
 
   const onTouchStart = (e: TouchEvent) => {
     const t = e.touches[0]
-    startRef.current = { x: t.clientX, y: t.clientY }
-    movedRef.current = false
-    setDragX(0)
+    const w = outerRef.current?.clientWidth ?? wRef.current
+    wRef.current = w
+    drag.current = { active: true, startX: t.clientX, lastX: t.clientX, moved: false, horizontal: true }
+    setTrack(-w, false)
   }
+
   const onTouchMove = (e: TouchEvent) => {
-    if (!startRef.current) return
+    const d = drag.current
+    if (!d.active) return
     const t = e.touches[0]
-    const dx = t.clientX - startRef.current.x
-    const dy = t.clientY - startRef.current.y
-    if (Math.abs(dx) > Math.abs(dy)) {
-      if (Math.abs(dx) > 8) movedRef.current = true
-      setDragX(dx)
-    }
+    d.lastX = t.clientX
+    const dx = t.clientX - d.startX
+    const dy = t.clientY - d.startY
+    if (Math.abs(dx) > Math.abs(dy)) d.horizontal = true
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) d.moved = true
+    // rAF 节流：每个动画帧最多更新一次，避免高频重排
+    if (rafRef.current != null) return
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      const dd = drag.current
+      if (!dd.active) return
+      const dxn = dd.lastX - dd.startX
+      const clamped = Math.max(-wRef.current, Math.min(wRef.current, dxn))
+      setTrack(-wRef.current + clamped, false)
+    })
   }
+
   const onTouchEnd = () => {
-    const dx = dragX
-    startRef.current = null
-    if (Math.abs(dx) > 50) {
-      if (dx < 0) next() // 左滑 → 下一月
-      else prev() // 右滑 → 上一月
+    const d = drag.current
+    if (!d.active) return
+    d.active = false
+    const dx = d.lastX - d.startX
+    const w = wRef.current
+    // 超过阈值（屏宽 20% 且 >40px）且以横向为主 → 切月
+    if (d.horizontal && Math.abs(dx) > Math.max(40, w * 0.2)) {
+      const goNext = dx < 0
+      const target = goNext ? view.add(1, 'month') : view.subtract(1, 'month')
+      // 先顺滑滑到相邻页，再切月并瞬移回中间（内容已是目标月，无缝）
+      setTrack(goNext ? -2 * w : 0, true)
+      movedRef.current = true
+      window.setTimeout(() => {
+        setView(target)
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => setTrack(-w, false)),
+        )
+      }, 200)
+    } else {
+      setTrack(-w, true) // 不足阈值，回弹到当前月
     }
-    setDragX(0)
   }
+
+  const prevM = useMemo(() => view.subtract(1, 'month'), [view])
+  const nextM = useMemo(() => view.add(1, 'month'), [view])
 
   return (
     <div>
@@ -140,71 +262,46 @@ export function ScheduleCalendar() {
         ))}
       </div>
 
-      {/* 日期网格（可左右滑动切换月份） */}
+      {/* 日期轨道：三页（上月/本月/下月）并排，可左右滑动预览 */}
       <div
+        ref={outerRef}
+        className="select-none overflow-hidden"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         style={{ touchAction: 'pan-y' }}
-        className="select-none"
       >
-        <div
-          className="grid grid-cols-7 gap-y-2 gap-x-1"
-          style={{
-            transform: dragX ? `translateX(${dragX}px)` : undefined,
-            transition: dragX ? 'none' : 'transform 0.2s ease',
-            opacity: dragX ? 0.85 : 1,
-          }}
-        >
-          {cells.map((d, i) => {
-            if (!d) return <div key={i} />
-            const status = getDayStatus(d)
-            const isToday = d.isSame(today, 'day')
-            const isRest = status === '休'
-            const festival = getFestivalName(d)
-            const isMakeup = isMakeupDay(d)
-            const isSel = selected?.isSame(d, 'day') ?? false
-            // 单元格主标签优先级：补班(amber) > 节日名 > 无（无则显示 休/班）
-            const label = isMakeup ? '补班' : festival
-            const showStatusOnly = !label
-            const labelCls = isMakeup
-              ? 'bg-amber-100 text-amber-700'
-              : isRest
-                ? 'bg-primary/12 text-primary'
-                : 'bg-surface-sunken text-ink-2'
-            return (
-              <div
-                key={i}
-                onClick={() => openEdit(d)}
-                className={`flex cursor-pointer flex-col items-center rounded-lg py-1 ${
-                  isSel ? 'bg-surface-sunken ring-1 ring-primary/30' : ''
-                }`}
-              >
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-pill text-sm ${
-                    isToday
-                      ? 'bg-primary font-semibold text-bg ring-2 ring-primary/30'
-                      : isSel
-                        ? 'font-semibold text-primary'
-                        : 'text-ink'
-                  }`}
-                >
-                  {d.date()}
-                </div>
-                {showStatusOnly ? (
-                  <span className={`mt-0.5 text-[10px] ${isRest ? 'text-primary' : 'text-ink-3'}`}>
-                    {status}
-                  </span>
-                ) : (
-                  <span
-                    className={`mt-0.5 max-w-[42px] truncate rounded px-1 text-[9px] leading-tight ${labelCls}`}
-                  >
-                    {label}
-                  </span>
-                )}
-              </div>
-            )
-          })}
+        <div ref={trackRef} className="flex" style={{ width: '300%', willChange: 'transform' }}>
+          <div className="w-1/3 shrink-0">
+            <MonthGrid
+              month={prevM}
+              isCenter={false}
+              selected={selected}
+              today={today}
+              onPickDay={openEdit}
+              onJumpMonth={jumpMonth}
+            />
+          </div>
+          <div className="w-1/3 shrink-0">
+            <MonthGrid
+              month={view}
+              isCenter
+              selected={selected}
+              today={today}
+              onPickDay={openEdit}
+              onJumpMonth={jumpMonth}
+            />
+          </div>
+          <div className="w-1/3 shrink-0">
+            <MonthGrid
+              month={nextM}
+              isCenter={false}
+              selected={selected}
+              today={today}
+              onPickDay={openEdit}
+              onJumpMonth={jumpMonth}
+            />
+          </div>
         </div>
       </div>
 
