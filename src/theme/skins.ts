@@ -274,10 +274,19 @@ export function applySkinTo(skin: Skin, mode: 'light' | 'dark') {
 
   // 卡片级配色覆盖（皮肤中心「自定义卡片颜色」）：
   // 背景默认回退 surface；描边默认透明（不显示）；文字默认按卡片背景亮度自动黑白保证可读。
+  // 防透明铁律：卡片背景只接受「不透明 hex」。8 位 hex 剥掉 alpha 通道、3 位展开、非法值回退 surface，
+  // 保证任何皮肤/历史数据都不会让 --card-bg 变成透明/半透明（卡片永远有实色底，不透飘浮层与下层内容）。
   const cardTok = skin.card?.[mode === 'dark' ? 'dark' : 'light'] ?? skin.card?.light
-  const cardBg = cardTok?.bg ?? p.surface
+  const toOpaqueHex = (v?: string): string => {
+    const h = (v ?? '').trim().toLowerCase()
+    if (/^#([0-9a-f]{8})$/.test(h)) return '#' + h.slice(1, 7) // 去掉 alpha
+    if (/^#([0-9a-f]{3})$/.test(h)) return '#' + h.slice(1).split('').map((ch) => ch + ch).join('')
+    if (/^#([0-9a-f]{6})$/.test(h)) return h
+    return '' // 非法/透明写法 → 由调用方回退 surface
+  }
+  const cardBg = toOpaqueHex(cardTok?.bg) || p.surface
   root.style.setProperty('--card-bg', cardBg)
-  root.style.setProperty('--card-border', cardTok?.border ?? 'transparent')
+  root.style.setProperty('--card-border', toOpaqueHex(cardTok?.border) || 'transparent')
   root.style.setProperty('--card-text', cardTok?.text ?? pickOn(cardBg))
 
   root.setAttribute('data-theme', skin.id)
