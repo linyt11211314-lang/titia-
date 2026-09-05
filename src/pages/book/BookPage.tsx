@@ -1750,7 +1750,9 @@ export function BookPage() {
                     <p className="mt-1 text-base font-bold text-primary">¥{((anaIncome - anaExpense) / 100).toFixed(0)}</p>
                   </div>
                 </div>
-                {/* 消费趋势：点击柱子 → 切换选中月份（联动筛选） */}
+                </div>
+                {/* 消费趋势（移出 sticky：原 sticky 头过高导致 CSS sticky 失效，内容随滚动被滚走，
+                    看起来像悬浮顶层；移到 sticky 外后下方滚动内容会被正常滚动） */}
                 <div
                   className="mb-3 rounded-card p-4 shadow-soft"
                   style={{ background: 'var(--card-bg, var(--color-surface))' }}
@@ -1766,7 +1768,6 @@ export function BookPage() {
                       setAnaCat(null)
                     }}
                   />
-                </div>
                 </div>
                 {/* 分类占比（可滚动）：点击分类行 → 联动对应分类账单明细 */}
                 <div
