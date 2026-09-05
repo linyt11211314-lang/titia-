@@ -1285,7 +1285,7 @@ export function BookPage() {
             {view === 'home' && (
               <>
                 {/* 首页固定区（sticky 吸顶）：标题 + 净资产卡，下方内容滚动 */}
-                <div className="sticky top-0 z-10 -mx-4 bg-bg px-4 pb-2 pt-2">
+                <div className="pb-2 pt-2">
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-ink">小账</h2>
                   <div className="flex items-center gap-2">
@@ -1399,7 +1399,7 @@ export function BookPage() {
               <>
                 {/* 顶部操作区固定（单一 sticky 块：标题+记一笔 + 本月概览 + 筛选 常驻可见，账单列表在其下方滚动；
                     避免「操作条」与「本月概览」各为独立 sticky 在 top:0 重叠） */}
-                <div className="sticky top-0 z-10 -mx-4 bg-bg px-4 pb-1 pt-2">
+                <div className="pb-1 pt-2">
                   {/* 操作栏：标题 + 编辑/记一笔 */}
                   <div className="mb-2 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-ink">小账</h2>
@@ -1608,7 +1608,7 @@ export function BookPage() {
                   {/* 固定区（sticky 吸顶）：标题 + 净资产 + 资产趋势折线图 合并为一张连贯宽卡片，
                       消除「大数字卡」与「折线图卡」之间的横向割裂感（顶部整体性与高级感）。
                       吸顶头本身保持 bg-bg 不透明，下方内容滚动时从其下方经过、不会透出。 */}
-                  <div className="sticky top-0 z-20 -mx-4 bg-bg px-4 pb-2 pt-2">
+                  <div className="pb-2 pt-2">
                     <div className="rounded-card bg-surface px-4 py-3 shadow-soft">
                       <div className="mb-2 flex items-center justify-between">
                         <h2 className="text-lg font-semibold text-ink">资产</h2>
@@ -1693,7 +1693,9 @@ export function BookPage() {
             {/* ═══ 分析（需求四：月份筛选 + 柱状图联动 + 分类占比联动） ═══ */}
             {view === 'analysis' && (
               <>
-                <div className="sticky top-0 z-10 -mx-4 bg-bg px-4 pb-3 pt-2">
+                {/* 不吸顶：CSS sticky 在滚动容器高度不足/不同渲染引擎（iOS PWA/WebView）下行为不可靠，
+                    曾导致头部随滚动被滚走、明细卡看起来"透过卡片浮现"。改为普通文档流，物理上不可能重叠。 */}
+                <div className="pt-2">
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-ink">分析</h2>
                 </div>
@@ -2289,7 +2291,7 @@ function AccountDetail({
   return (
     <div className="flex min-h-full flex-col">
       {/* 固定区（sticky 吸顶紧贴状态栏）：返回 + 账户名 + 操作 + 月度总览卡片 */}
-      <div className="sticky top-0 z-10 -mx-4 bg-bg px-4 pb-2 pt-2">
+      <div className="pb-2 pt-2">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-2">
             <button
