@@ -39,7 +39,7 @@ export default defineConfig({
         // 不继承旧缓存（iOS 按 start_url 标识 web clip，同 URL 删装可能复用旧缓存）。
         // 应用用 hash 路由，query 被忽略，不影响路由。
         // start_url 含 base 前缀，确保子路径部署（GitHub Pages /<repo>/）下 PWA 安装入口正确。
-        start_url: BASE_PATH + '?v=20260905b',
+        start_url: BASE_PATH + '?v=20260905c',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
