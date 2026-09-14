@@ -13,6 +13,7 @@ import { exportBackup, importBackup, storageUsage, formatBytes } from '../../ser
 import { getAiKey, setAiKey, getAiBaseUrl, setAiBaseUrl, DEFAULT_AI_BASE } from '../../services/ai'
 import { confirmSheet } from '../../components/base/Confirm'
 import { getCustomSkins, deleteCustomSkin } from '../../services/customSkins'
+import { usageDays } from '../../services/usage'
 
 // Titia 时序 · 我的（主题中心 / 数据管理 / 应用设置）
 // 数据存储：本地优先（IndexedDB）。当前阶段不接 Supabase/后端/云端接口，
@@ -80,16 +81,20 @@ export function MinePage() {
     <div className="flex h-full min-w-0 flex-col">
       {/* 固定 Header Banner：滚动时保持不动（不随下方设置内容滚动） */}
       <div className="shrink-0 px-5 pt-4 pb-2" style={{ paddingTop: 'calc(var(--safe-top) + 12px)' }}>
-        {/* Titia 时序卡片（仅展览，无功能——主题入口唯一保留下方「主题中心」设置卡） */}
+          {/* Titia 时序卡片（仅展览，无功能——主题入口唯一保留下方「主题中心」设置卡） */}
           <div
             className="relative block w-full overflow-hidden rounded-card bg-surface text-left"
             style={{ height: 152 }}
           >
             {/* 文案：三行层级（主标题 → 副标题 → 日期独立第三行，间距分明） */}
-            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-left">
+            <span className="absolute left-5 top-4 text-left">
               <span className="block text-2xl font-bold leading-tight text-ink">Titia 时序</span>
               <span className="mt-1.5 block text-sm leading-tight text-ink-2">让时间留下痕迹</span>
               <span className="mt-2 block text-xs leading-tight text-ink-3/70">2026 年 8 月 3 日</span>
+            </span>
+            {/* 已使用时间：自 2026.8.3 起至今，App 启用的第 X 天（banner 底部常驻） */}
+            <span className="absolute bottom-3 left-5 text-xs text-ink-3">
+              已使用 <span className="font-semibold text-ink-2">{usageDays()}</span> 天
             </span>
           </div>
       </div>
@@ -147,7 +152,7 @@ export function MinePage() {
               />
             </div>
             <p className="mt-2 text-xs text-ink-3">
-              导出会弹出系统分享面板，可存到「文件」或发微信 / 邮件给自己；换新手机或重装后，用「导入恢复」从「文件」选回即可。打卡记录已包含在备份内。
+              导出会弹出系统分享面板，可存到「文件」或发微信 / 邮件给自己；换新手机或重装后，用「导入恢复」从「文件」选回即可。
             </p>
           </div>
         </div>

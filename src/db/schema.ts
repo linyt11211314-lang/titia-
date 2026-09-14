@@ -20,7 +20,6 @@ import type {
   BudgetEntity,
   CustomSkinRow,
   PresetSkinRow,
-  CheckinRow,
   AuraHistoryRow,
   WujiItemRow,
   SleepRow,
@@ -53,8 +52,6 @@ export class TitiaDB extends Dexie {
   customSkins!: Table<CustomSkinRow, string>
   // 预设皮肤（出厂内置皮肤的本地可编辑副本，平滑升级建表）
   presetSkins!: Table<PresetSkinRow, string>
-  // 打卡（今日页）：每天一行，主键=日期字符串；与所有业务数据一致，可被备份/导入/迁移书签带走
-  checkin!: Table<CheckinRow, string>
   // Aura 皮肤诊断历史：每次生成一条，本地留存，便于回顾
   auraHistory!: Table<AuraHistoryRow, string>
   // 物集（个人资产管理）：每件物品一条，纯本地留存
@@ -103,10 +100,6 @@ export class TitiaDB extends Dexie {
     // 预设皮肤表：老用户升级建表（平滑升级，不丢数据）
     this.version(6).stores({
       presetSkins: 'id, createdAt, order',
-    })
-    // 打卡表：老用户升级建表（平滑升级，不丢数据）
-    this.version(8).stores({
-      checkin: 'date',
     })
     // Aura 皮肤诊断历史表：老用户升级建表（平滑升级，不丢数据）
     this.version(9).stores({

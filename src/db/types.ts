@@ -248,11 +248,6 @@ export interface VaultItemEntity extends BaseEntity {
   note?: string
 }
 
-// 打卡（今日页）：每天一行，主键=日期字符串；由旧版 localStorage 迁移而来，统一进 IndexedDB。
-export interface CheckinRow {
-  date: string // YYYY-MM-DD
-}
-
 // 睡眠数据（来自 iPhone 快捷指令 Shortcuts 自动导入）：每天一行，主键=日期字符串。
 // 同日多次导入自动覆盖（put 以 date 为主键）。
 export interface SleepRow {

@@ -56,7 +56,7 @@ const TABLE_NAMES = [
   'settings', 'shopping', 'financeItems', 'cycles', 'vaultMeta', 'vaultItems',
   'countdownEvents',
   'transactions', 'rules', 'accounts', 'categories', 'budgets',
-  'customSkins', 'presetSkins', 'auraHistory', 'checkin', 'wujiItems', 'sleep',
+  'customSkins', 'presetSkins', 'auraHistory', 'wujiItems', 'sleep',
 ] as const
 
 function blobToBase64(b: Blob): Promise<string> {

@@ -10,7 +10,6 @@ import { useSparkStore } from '../stores/useSparkStore'
 import { useFinanceStore } from '../stores/useFinanceStore'
 import { useCycleStore } from '../stores/useCycleStore'
 import { useShoppingStore } from '../stores/useShoppingStore'
-import { migrateLegacyCheckin } from './checkin'
 
 // Titia 时序 · 备份服务
 // 导出：全部表 + 图片 Blob→base64 → 下载 JSON（密码箱条目保持密文）。
@@ -39,7 +38,6 @@ const TABLE_NAMES = [
   'customSkins',
   'presetSkins',
   'auraHistory',
-  'checkin',
   'wujiItems',
   'sleep',
 ] as const
@@ -63,9 +61,6 @@ function base64ToBlob(b64: string, mime: string): Blob {
 
 // 构建备份 JSON 文本（全部表 + 图片 Blob→base64）。
 async function buildBackupJson(): Promise<string> {
-  // 导出前先把旧版 localStorage 打卡并回 IndexedDB，避免「导出时 checkin 表为空 → 打卡丢失」。
-  // 仅做迁移、不触发基线种子，导出行为不污染数据。
-  await migrateLegacyCheckin()
   const out: { version: number; exportedAt: number; tables: Record<string, AnyRow[]> } = {
     version: 1,
     exportedAt: Date.now(),
@@ -75,7 +70,7 @@ async function buildBackupJson(): Promise<string> {
     const table = (db as unknown as Record<string, { toArray: () => Promise<AnyRow[]> }>)[name]
     const all = (await table.toArray()) as AnyRow[]
     // 软删记录（deletedAt 已置位）不进备份：删除即不再导出，避免已删记录残留于备份文件。
-    // 无 deletedAt 字段的表（media/settings/checkin/customSkins 等）不受影响（字段缺失 → 保留）。
+    // 无 deletedAt 字段的表（media/settings/customSkins 等）不受影响（字段缺失 → 保留）。
     const rows = all.filter((r) => !(r as { deletedAt?: number | null }).deletedAt)
     out.tables[name] = await Promise.all(
       rows.map(async (r) => {
@@ -182,7 +177,7 @@ async function applyBackupData(data: { tables: Record<string, AnyRow[]> }): Prom
           return r
         }),
       )
-      // 按主键去重：防止备份文件内出现重复行（id 或 checkin/sleep 的 date 主键）导致写入异常。
+      // 按主键去重：防止备份文件内出现重复行（id 或 sleep 的 date 主键）导致写入异常。
       const seen = new Set<string>()
       const deduped = fixed.filter((row) => {
         const key = (row.id as string) ?? (row.date as string)
@@ -197,8 +192,7 @@ async function applyBackupData(data: { tables: Record<string, AnyRow[]> }): Prom
         clear: () => Promise<void>
       }>)[name]
       // 还原语义：先清空目标表再写入，确保「备份是唯一真值」。
-      // 否则新站首次打开会补 9 天基线种子（ensureCheckinMigrated），合并导入会让打卡天数
-      // 被种子污染（多算/错算）。导入前已自动生成静默备份（exportBackupSilent），可回滚。
+      // 导入前已自动生成静默备份（exportBackupSilent），可回滚。
       await table.clear()
       if (name === 'media' && deduped.length > 5) {
         for (let i = 0; i < deduped.length; i += 5) {

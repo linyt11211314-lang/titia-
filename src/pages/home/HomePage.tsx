@@ -19,7 +19,6 @@ import { navigate } from '../../app/useHashRoute'
 import { getWeatherDetail, type WeatherDetail } from '../../services/weather'
 import { WeatherSheet } from '../../components/weather/WeatherSheet'
 import { ScheduleCalendar } from '../../components/schedule/ScheduleCalendar'
-import { checkInToday, isCheckedToday, usageDays, streakDays } from '../../services/checkin'
 import type { TransactionEntity } from '../../db/types'
 
 const GREET = () => {
@@ -102,26 +101,6 @@ export function HomePage() {
   const open = useOverlayStore((s) => s.open)
   const close = useOverlayStore((s) => s.close)
   const [weather, setWeather] = useState<WeatherDetail | null>(null)
-  // 打卡统计（已使用 = 2026.8.3 至今日历天数；连续 = 手动打卡连续；今日打卡按钮）
-  const [checkin, setCheckin] = useState({ usage: 0, streak: 0, checkedToday: false })
-  const refreshCheckin = async () => {
-    const [streak, checkedToday] = await Promise.all([streakDays(), isCheckedToday()])
-    setCheckin({ usage: usageDays(), streak, checkedToday })
-  }
-  useEffect(() => {
-    void refreshCheckin()
-  }, [])
-  // 跨日自动刷新：每日 0 点后打卡按钮恢复可点（轻量每分钟检查，跨日即刻生效）
-  useEffect(() => {
-    const id = setInterval(() => void refreshCheckin(), 60_000)
-    return () => clearInterval(id)
-  }, [])
-  const onCheckIn = async () => {
-    if (await checkInToday()) {
-      await refreshCheckin()
-      showToast('打卡成功，今天也来看我啦 🎉')
-    }
-  }
 
   useEffect(() => {
     if (!loaded) load()
@@ -219,49 +198,9 @@ export function HomePage() {
         onRefresh={reloadAll}
         className="flex h-full flex-col overflow-y-auto overflow-x-hidden overscroll-none touch-pan-y px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-2"
       >
-      {/* 打卡面板 + 消费卡片（banner 下方、待办上方；消费真实同步账单今日/本月花销） */}
+      {/* 消费卡片（banner 下方、待办上方；真实同步账单今日/本月花销） */}
       <section className="mb-5 fade-up">
         <div className="grid grid-cols-2 gap-2">
-          {/* 已使用：2026.8.3 至今过去多少天 */}
-          <div className="flex flex-col justify-between rounded-card bg-surface p-4 shadow-soft skin-card" style={{ background: 'var(--card-bg)' }}>
-            <p className="text-xs text-ink-3">📅 已使用</p>
-            <p className="mt-2 text-3xl font-bold leading-none text-ink">
-              {checkin.usage}
-              <span className="ml-1 text-sm font-normal text-ink-3">天</span>
-            </p>
-            <p className="mt-2 text-[11px] text-ink-3">2026.8.3 起 · 今天第 {checkin.usage} 天</p>
-          </div>
-          {/* 连续打卡：手动打卡按钮（每日 0 点恢复可打卡） */}
-          <div
-            className={`flex flex-col justify-between rounded-card p-4 shadow-soft skin-card ${
-              checkin.checkedToday ? 'bg-primary-soft' : 'bg-surface'
-            }`}
-            style={{ background: checkin.checkedToday ? undefined : 'var(--card-bg)' }}
-          >
-            <p className="text-xs text-ink-3">🔥 连续打卡</p>
-            <p className="mt-2 text-3xl font-bold leading-none text-ink">
-              {checkin.streak}
-              <span className="ml-1 text-sm font-normal text-ink-3">天</span>
-            </p>
-            {checkin.checkedToday ? (
-              <button
-                type="button"
-                disabled
-                className="mt-2.5 rounded-pill bg-primary/10 px-3 py-2 text-center text-xs font-semibold text-primary"
-              >
-                ✓ 今日已打卡
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onCheckIn}
-                className="pressable mt-2.5 rounded-pill bg-primary px-3 py-2 text-center text-xs font-semibold text-bg shadow-card"
-              >
-                📅 打卡
-              </button>
-            )}
-            <p className="mt-1.5 text-[11px] text-ink-3">真棒！今天又来看我啦～</p>
-          </div>
           {/* 今日消费 / 本月消费（真实同步账单） */}
           <div className="rounded-card bg-surface p-4 shadow-soft skin-card" style={{ background: 'var(--card-bg)' }}>
             <p className="text-xs text-ink-3">💰 今日消费</p>

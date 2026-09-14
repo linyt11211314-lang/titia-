@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import App from './app/App'
 import { loadCustomSkins } from './services/customSkins'
 import { loadPresetSkins } from './services/skinPresets'
-import { ensureCheckinMigrated } from './services/checkin'
 import { applySkin } from './theme/skins'
 import { useSettingsStore } from './stores/useSettingsStore'
 import { useAppStore } from './stores/useAppStore'
@@ -87,8 +86,6 @@ function renderApp() {
 }
 
 async function boot() {
-  // 启动早期触发打卡迁移 / 一次性基线种子（不阻塞首屏）
-  void ensureCheckinMigrated().catch(() => {})
   let rendered = false
   const finish = () => {
     if (rendered) {
