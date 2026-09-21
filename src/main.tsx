@@ -6,6 +6,7 @@ import { loadPresetSkins } from './services/skinPresets'
 import { applySkin } from './theme/skins'
 import { useSettingsStore } from './stores/useSettingsStore'
 import { useAppStore } from './stores/useAppStore'
+import { initHolidayConfig } from './services/schedule'
 import './app/styles/index.css'
 
 // 全局错误兜底：把【本应用自身代码】的运行时崩溃显示为可见文字，避免「白屏无信息」难以排查。
@@ -121,6 +122,8 @@ async function boot() {
   } catch {
     /* 忽略：快照缺失/损坏时交给 App 的 skin effect 异步恢复 */
   }
+  // 节假日配置远程拉取（不阻塞首屏）：远程为权威，本地缓存兜底，下次打开自动同步新节假日。
+  void initHolidayConfig().catch(() => {})
   clearTimeout(timer)
   finish()
 }

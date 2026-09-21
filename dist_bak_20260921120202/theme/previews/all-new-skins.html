@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=640,height=520">
+<title>Titia 时序 · 新增 4 套皮肤预览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; background:#f0f0f0;
+    font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+    padding:20px;
+  }
+  .grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:600px;
+  }
+  .card {
+    border-radius:16px; overflow:hidden;
+    box-shadow:0 8px 24px rgba(0,0,0,.14);
+    display:flex; flex-direction:column;
+  }
+  .card-header {
+    padding:10px 14px 6px;
+    display:flex; align-items:center; gap:7px;
+  }
+  .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .title { font-size:12px; font-weight:700; letter-spacing:.3px; }
+  .sub { font-size:9px; opacity:.7; margin-left:auto; }
+  .card-body {
+    flex:1; padding:0 14px 10px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .swatch-row { display:flex; gap:5px; }
+  .sw {
+    height:26px; border-radius:6px; flex:1;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; font-weight:700;
+  }
+  .tag-row { display:flex; gap:5px; align-items:center; }
+  .tag {
+    padding:2px 8px; border-radius:12px;
+    font-size:9px; font-weight:600;
+  }
+  .bar { height:3px; width:100%; border-radius:2px; margin-top:2px; }
+
+  /* ── 甜酷黑 ── */
+  .sc { background:#373A3F; }
+  .sc .title,.sc .sub{ color:#f0ecef; }
+  .sc .tag{ background:#E93F80; color:#373A3F; }
+  /* ── 黑黄经典 ── */
+  .bg { background:#373A3F; }
+  .bg .title,.bg .sub{ color:#f5f2e8; }
+  .bg .tag{ background:#F5D75F; color:#373A3F; }
+  /* ── 热烈橙黑 ── */
+  .ob { background:#373A3F; }
+  .ob .title,.ob .sub{ color:#f5f0e8; }
+  .ob .tag{ background:#EA6F29; color:#fff; }
+  /* ── 明亮撞色 ── */
+  .bc { background:#fefefa; }
+  .bc .title,.bc .sub{ color:#1f1e16; }
+  .bc .tag{ background:#FCDF35; color:#1f1e16; }
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <!-- 甜酷黑 -->
+  <div class="card sc">
+    <div class="card-header">
+      <span class="dot" style="background:#E93F80"></span>
+      <span class="title">甜酷黑</span>
+      <span class="sub">SWEET COOL BLACK</span>
+    </div>
+    <div class="card-body">
+      <div class="swatch-row">
+        <div class="sw" style="background:#E93F80;color:rgba(255,255,255,.85)">#E93F80 甜酷粉</div>
+        <div class="sw" style="background:#ff6ba6;color:rgba(255,255,255,.85)">#FF6BA6</div>
+      </div>
+      <div class="swatch-row">
+        <div class="sw" style="background:#414449;color:#b5a0ab">#414449 表面</div>
+        <div class="sw" style="background:#2d3034;color:#7d6b76">#2D3034 凹陷</div>
+      </div>
+      <div class="tag-row">
+        <span class="tag">深色模式</span>
+        <span style="font-size:8px;color:#b5a0ab">ink → 白色 #f0ecef</span>
+      </div>
+      <div class="bar" style="background:linear-gradient(90deg,#E93F80,#c72d68,#ff6ba6)"></div>
+    </div>
+  </div>
+
+  <!-- 黑黄经典 -->
+  <div class="card bg">
+    <div class="card-header">
+      <span class="dot" style="background:#F5D75F"></span>
+      <span class="title">黑黄经典</span>
+      <span class="sub">BLACK &amp; GOLD</span>
+    </div>
+    <div class="card-body">
+      <div class="swatch-row">
+        <div class="sw" style="background:#F5D75F;color:#373A3F">#F5D75F 密黄</div>
+        <div class="sw" style="background:#ffe066;color:#373A3F">#FFE066</div>
+      </div>
+      <div class="swatch-row">
+        <div class="sw" style="background:#414449;color:#b8ad88">#414449 表面</div>
+        <div class="sw" style="background:#2d3034;color:#7e795a">#2D3034 凹陷</div>
+      </div>
+      <div class="tag-row">
+        <span class="tag">深色模式</span>
+        <span style="font-size:8px;color:#b8ad88">ink → 白色 #f5f2e8</span>
+      </div>
+      <div class="bar" style="background:linear-gradient(90deg,#F5D75F,#c4aa2a,#ffe066)"></div>
+    </div>
+  </div>
+
+  <!-- 热烈橙黑 -->
+  <div class="card ob">
+    <div class="card-header">
+      <span class="dot" style="background:#EA6F29"></span>
+      <span class="title">热烈橙黑</span>
+      <span class="sub">VIBRANT ORANGE</span>
+    </div>
+    <div class="card-body">
+      <div class="swatch-row">
+        <div class="sw" style="background:#EA6F29;color:#fff">#EA6F29 热烈橙</div>
+        <div class="sw" style="background:#ff8c3d;color:#fff">#FF8C3D</div>
+      </div>
+      <div class="swatch-row">
+        <div class="sw" style="background:#414449;color:#b8a67a">#414449 表面</div>
+        <div class="sw" style="background:#2d3034;color:#7e7554">#2D3034 凹陷</div>
+      </div>
+      <div class="tag-row">
+        <span class="tag">深色模式</span>
+        <span style="font-size:8px;color:#b8a67a">ink → 白色 #f5f0e8</span>
+      </div>
+      <div class="bar" style="background:linear-gradient(90deg,#EA6F29,#c25a15,#ff8c3d)"></div>
+    </div>
+  </div>
+
+  <!-- 明亮撞色 -->
+  <div class="card bc">
+    <div class="card-header">
+      <span style="display:flex;gap:3px">
+        <span class="dot" style="background:#FCDF35"></span>
+        <span class="dot" style="background:#87CC62"></span>
+        <span class="dot" style="background:#FC6BAD"></span>
+      </span>
+      <span class="title">明亮撞色</span>
+      <span class="sub">BRIGHT CLASH</span>
+    </div>
+    <div class="card-body">
+      <div class="swatch-row">
+        <div class="sw" style="background:#FCDF35;color:#6b6a52">#FCDF35 明亮黄</div>
+        <div class="sw" style="background:#87CC62;color:#1f1e16">#87CC62 青草绿</div>
+        <div class="sw" style="background:#FC6BAD;color:#fff">#FC6BAD 亮粉</div>
+      </div>
+      <div class="swatch-row">
+        <div class="sw" style="background:#fcf8d8;color:#6b6a52;font-size:8px">primary-soft</div>
+        <div class="sw" style="background:#ecf5e6;color:#6b6a52;font-size:8px">accent-soft</div>
+        <div class="sw" style="background:#fce8f4;color:#6b6a52;font-size:8px">hl-soft</div>
+      </div>
+      <div class="tag-row">
+        <span class="tag">浅色/节日风</span>
+        <span style="font-size:8px;color:#96947a">三色撞色系</span>
+      </div>
+      <div class="bar" style="background:linear-gradient(90deg,#FCDF35,#87CC62,#FC6BAD,#FCDF35)"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
