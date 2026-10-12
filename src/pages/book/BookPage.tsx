@@ -1265,7 +1265,7 @@ export function BookPage() {
                   switchView(v.key)
                 }}
                 aria-current={on ? 'page' : undefined}
-                className={`relative flex shrink-0 items-center gap-1 pb-2.5 pt-1 text-[15px] transition-colors ${on ? 'font-semibold text-ink' : 'text-ink-3'}`}
+                className={`relative flex shrink-0 items-center gap-1 pb-2.5 pt-1 text-[15px] transition-colors ${on ? 'font-semibold text-ink' : 'font-medium text-ink-2'}`}
               >
                 <span className="text-base leading-none">{v.icon}</span>
                 <span className="whitespace-nowrap leading-none">{v.label}</span>

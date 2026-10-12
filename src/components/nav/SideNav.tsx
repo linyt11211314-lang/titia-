@@ -66,7 +66,7 @@ export function SideNav({ active, onSwitch, badge }: SideNavProps) {
                   strokeWidth={on ? 0 : 1.6}
                 />
               </span>
-              <span className={`text-[11px] leading-none ${on ? 'font-semibold text-ink' : 'text-ink-3'}`}>
+              <span className={`text-[11px] leading-none ${on ? 'font-semibold text-ink' : 'font-medium text-ink-2'}`}>
                 {t.label}
               </span>
               {t.key === 'home' && badge && (
