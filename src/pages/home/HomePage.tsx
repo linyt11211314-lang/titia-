@@ -167,7 +167,7 @@ export function HomePage() {
         <div className="relative overflow-hidden flex items-start justify-between rounded-card bg-surface p-5 shadow-card skin-card" style={{ background: 'var(--card-bg)' }}>
           <MotifCorner size={88} opacity={0.1} />
           <div className="relative">
-            <p className="text-xs text-ink-3">Titia 时序</p>
+            <p className="text-xs text-ink-2">Titia 时序</p>
             <button
               type="button"
               onClick={() =>

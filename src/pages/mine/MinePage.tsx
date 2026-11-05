@@ -90,11 +90,11 @@ export function MinePage() {
             <span className="absolute left-5 top-4 text-left">
               <span className="block text-2xl font-bold leading-tight text-ink">Titia 时序</span>
               <span className="mt-1.5 block text-sm leading-tight text-ink-2">让时间留下痕迹</span>
-              <span className="mt-2 block text-xs leading-tight text-ink-3/70">2026 年 8 月 3 日</span>
+              <span className="mt-2 block text-xs leading-tight text-ink-2">2026 年 8 月 3 日</span>
             </span>
             {/* 已使用时间：自 2026.8.3 起至今，App 启用的第 X 天（banner 底部常驻） */}
-            <span className="absolute bottom-3 left-5 text-xs text-ink-3">
-              已使用 <span className="font-semibold text-ink-2">{usageDays()}</span> 天
+            <span className="absolute bottom-3 left-5 text-xs text-ink-2">
+              已使用 <span className="font-semibold text-ink">{usageDays()}</span> 天
             </span>
           </div>
       </div>

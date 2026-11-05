@@ -57,7 +57,7 @@ export function SpacePage() {
                   setActive(n.key)
                 }}
                 aria-current={on ? 'page' : undefined}
-                className={`relative flex shrink-0 items-center gap-1 pb-2.5 pt-1 text-[15px] transition-colors ${on ? 'font-semibold text-ink' : 'text-ink-3'}`}
+                className={`relative flex shrink-0 items-center gap-1 pb-2.5 pt-1 text-[15px] transition-colors ${on ? 'font-semibold text-ink' : 'font-medium text-ink-2'}`}
               >
                 <span className="text-base leading-none">{n.icon}</span>
                 <span className="whitespace-nowrap leading-none">{n.short}</span>
@@ -168,7 +168,7 @@ function SpaceHome({ onNavigate }: { onNavigate: (k: TabKey) => void }) {
     <div className="flex flex-col gap-3">
       {/* 欢迎标题 */}
       <div className="pt-1">
-        <p className="text-xs text-ink-3">Titia 时序 · 小窝</p>
+        <p className="text-xs text-ink-2">Titia 时序 · 小窝</p>
         <h1 className="mt-0.5 text-2xl font-semibold text-ink">今天也记得看看他们</h1>
       </div>
 
