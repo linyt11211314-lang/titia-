@@ -303,7 +303,7 @@ export function applySkinTo(skin: Skin, mode: 'light' | 'dark') {
   // iOS 半透明状态栏透出的是 html 背景色，故把 documentElement 背景同步为当前主题 bg，
   // 保证状态栏区域（含页面边缘缝隙）露出的就是主题底色，与页面无缝贴合。
   root.style.backgroundColor = p.bg
-  syncStatusChrome(p.bg)
+  syncStatusChrome(p.bg, mode)
 }
 
 /** 捕获设备真实安全区顶高，供 black-translucent 模式兜底。
@@ -354,8 +354,13 @@ function captureSafeTopFloor(): string {
   return SAFE_TOP_FLOOR
 }
 
-/** 动态更新 viewport 顶栏相关 meta（不存在则创建）。避免使用弃用 API，直接操作 <meta>。 */
-function syncStatusChrome(bg: string) {
+/** 动态更新 viewport 顶栏相关 meta（不存在则创建）。避免使用弃用 API，直接操作 <meta>。
+ *  mode 决定 iOS 状态栏文字颜色：
+ *   - light：status-bar-style=default（黑色文字）透出浅色 App 背景 → 清晰可读；
+ *   - dark ：status-bar-style=black-translucent（白色文字）透出深色 App 背景 → 清晰可读。
+ *  之前写死 black-translucent 会让浅色模式下「白字落在浅色背景」对比度极低、发虚，
+ *  用户感知为「顶部模糊」。跟随深浅切换后两种模式都清晰。 */
+function syncStatusChrome(bg: string, mode: 'light' | 'dark') {
   const root = document.documentElement
   const setMeta = (name: string, content: string) => {
     // 优先用带 id 的 meta（index.html 中 theme-color 已加 id="theme-color-meta"），
@@ -375,7 +380,12 @@ function syncStatusChrome(bg: string) {
   // iOS：统一用 black-translucent 半透明叠加——状态栏透明，App 背景色（html/body/#root 的 bg-bg）自然透出，
   // 因此「状态栏颜色 = html 背景 = 当前主题 bg」，切换深浅/自定义主题即跟随变化
   // （iOS Safari 不支持动态改 theme-color，故放弃该方案改用叠加）。
-  setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent')
+  // 浅色模式用 default（黑字）透出浅色背景；深色模式用 black-translucent（白字）透出深色背景。
+  // 二者在各自背景下对比度都足够，状态栏文字（时间/信号/电量）清晰，不再发虚。
+  setMeta(
+    'apple-mobile-web-app-status-bar-style',
+    mode === 'dark' ? 'black-translucent' : 'default',
+  )
   // black-translucent 会让 env(safe-area-inset-top) 归零；非 PWA/桌面模式下 env 才是真实安全区。
   // 故仅在「已加到主屏幕的 PWA（standalone）」模式下用真实安全区高度兜底（避免内容被状态栏压住），
   // 普通浏览器里用 env 动态值（已正确反映刘海/灵动岛安全区），避免无谓的顶部留白。
